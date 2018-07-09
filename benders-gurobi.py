@@ -158,7 +158,7 @@ def mp(Q, E, iter_i, parameter, cuts_type):
             )
     elif cuts_type == "cb":
         # addConstraints do not support dict enumeration
-        #  benders feasible combinatorial cut
+        # benders feasible combinatorial cut
         for item in Q.values():
             master.addConstr(
                 quicksum(y[i, j] for (i, j) in item[0]) +

@@ -1,8 +1,9 @@
 import numpy as np
 import numpy.linalg as la
-from Variable import Variable
-from Constraint import Constraint
+from collections import defaultdict
+
 from Constant import *
+from DataStructure import *
 
 
 def quick_sum(vars_list=list()):
@@ -32,90 +33,98 @@ class LpSolver(object):
         # 2 for max
         self.obj_type = 0
 
+        # variables number counter
+        self.variables_index = 0
+        # variables collector
         # variables_name(str) : variables_dict(dict)
         # variables_index : Variable
         # "x": dict()
         # (0,0): X_{0,0}
-        self.variables_dict = dict()
-        self.variables_dict["var"] = dict()
+        self.variables_collector = defaultdict(dict)
+        # index 2 variable
+        # index : (variable_name, variable_index)
+        self.variables_index2variable = dict()
+        # variable 2 index
+        # (variable_name, variable_index) : index
+        self.variables_variable2index = dict()
 
+        # constraints number counter
+        self.constraints_index = 0
+        # constraints collector
         # constraints_name(str) : constraints_dict(dict)
         # constraints_index : coefficient_list, comp_sign, comp_value
         # "u": dict()
         # (0,0): u_{0,0}
-        self.constraints_dict = dict()
+        self.constraints_collector = defaultdict(dict)
+        # index 2 constraint
+        # index : (constraint_name, constraint_index)
+        self.constraints_index2constraint = dict()
+        # constraint 2 index
+        # (constraint_name, constraint_index) : index
+        self.constraints_constraint2index = dict()
 
-        # variable number counter
-        self.variables_count = 0
-        # variables collector
-        self.variables_total = dict()
-
-        self.constraints_count = 0
-        self.constraints_total = dict()
-
-        # # (name, index) : Variable
-        # self.variables_index_dict = dict()
-
-    def add_variable(self, name=None):
-
-        if name:
-            print("No variables name")
-            name = "var" + str(self.variables_count)
-            auto = True
-
-        var = Variable(name=name, index=self.variables_count, auto=True)
-        self.variables_total[name, self.variables_count] = var
-        self.variables_dict["var"][self.variables_count] = var
-        self.variables_count += 1
-        return var
-
-    def add_variables(self, name=None, variables_index=list()):
-        # TODO: check duplicated variables, same name and duplicated index
-        if len(variables_index) == 0:
-            print("No variables added")
+    def add_variable(self, name=None, index=None, lb=0, ub=INF):
+        if not name:
+            name = "var"
+        elif name == "var":
+            print("'var' is built-in name, rename your variable")
             return None
 
-        if name:
-            print("No variables name")
-            name = "var" + str(self.variables_count)
-            auto = True
+        index = index if index else self.variables_index
 
-        var = dict()
-        for index in variables_index:
-            var[tuple(index)] = Variable(name=name, index=index, auto=auto)
-            # mark variable index
-            self.variables_total[name, index] = self.variables_count
-            self.variables_count += 1
+        if (name, index) in self.variables_collector.keys():
+            print(name+" "+str(index)+" is used before")
+            return None
 
-        self.variables_dict[name] = var
+        var = Variable(name=name, index=index, lb=lb, ub=ub)
+        self.variables_collector[name][index] = var
+        self.variables_index2variable[self.variables_index] = (name, index)
+        self.variables_variable2index[(name, index)] = self.variables_index
+        self.variables_index += 1
         return var
+
+    # TODO: optimize index input
+    def add_variables(self, name=None, index=None, lb=0, ub=INF):
+        if not name:
+            name = "var"
+        elif name == "var":
+            print("'var' is built-in name, rename your variable")
+            return None
+
+        if not index:
+            print("index isn't specified for variables")
+            return None
+
+        vars_dict = dict()
+
+        for i in index:
+            var = Variable(name=name, index=index, lb=lb, ub=ub)
+            vars_dict[i] = var
+            self.variables_index2variable[self.variables_index] = (name, i)
+            self.variables_variable2index[(name, i)] = self.variables_index
+            self.variables_index += 1
+        self.variables_collector[name] = vars_dict
+        return vars_dict
 
     def add_constraint(self, constraint=None, name=None):
 
-        if constraint:
-            print("No constraint added")
-            return None
-
-        if name:
-            print("No constraint name")
-            name = "constr" + str(self.constraints_count)
-
-        self.constraints_dict[name] = Constraint(constraint)
-
-        return self.constraints_dict[name]
-
-    def add_constraints(self):
         pass
 
-    def set_objective(self, obj, obj_type="min"):
+    def add_constraints(self, constraints=None, name=None):
 
-        if obj_type == "min" or obj == 1:
-            self.obj_type = 1
-        elif obj_type == "max" or obj == 2:
-            self.obj_type = 2
+        pass
+
+    def set_objective(self, obj, obj_type=MINIMIZE):
+        if isinstance(obj, Expression):
+            pass    # TODO
+        else:
+            print("Wrong expression for objective function")
+        if obj_type in (MINIMIZE, MAXIMIZE):
+            self.obj_type = obj_type
         else:
             print("Wrong objective type")
 
+    # TODO
     def pre_check(self):
         if self.obj_type == 0:
             print("please set objective type")
@@ -138,4 +147,9 @@ class LpSolver(object):
 
 if __name__ == "__main__":
     model = LpSolver()
-    model.add_variables()
+    model.add_variable(name="x")
+    model.add_variables(name="y", index=[(i, j) for i in range(5) for j in range(5)])
+    print(model.variables_index)
+    print(model.variables_collector)
+    print(model.variables_variable2index)
+    print(model.variables_index2variable)

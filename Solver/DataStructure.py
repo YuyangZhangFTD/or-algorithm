@@ -12,7 +12,7 @@ class Variable(object):
         self.name = name if name and isinstance(name, str) else None
 
         # if not specified, using solver.variable_index
-        self.index = index if index else None
+        self.index = index if not (index is None) else None
 
         # False for name or index being specified
         self.auto = True if name or index else False
@@ -31,6 +31,14 @@ class Variable(object):
                 self.clean()
         else:
             print("'+' is not implemented between Variable and " + str(type(other)))
+            return None
+
+    # for using built-in function sum(Iterable, start)
+    # sum([x1,x2,...]) will be 0 + x1 + x2 + ...
+    def __radd__(self, other):
+        if other == 0:
+            return self
+        else:
             return None
 
     def __sub__(self, other):
@@ -60,6 +68,28 @@ class Variable(object):
 
     def __rtruediv__(self, other):
         return self / other
+
+    def __le__(self, other):
+        return Constraint(Expression(self), LE, other)
+
+    def __lt__(self, other):
+        return Constraint(Expression(self), LT, other)
+
+    def __ge__(self, other):
+        return Constraint(Expression(self), GE, other)
+
+    def __gt__(self, other):
+        return Constraint(Expression(self), GT, other)
+
+    def __eq__(self, other):
+        return Constraint(Expression(self), EQ, other)
+
+    def __ne__(self, other):
+        return Constraint(Expression(self), NE, other)
+
+    def __neg__(self):
+        self.coefficient *= -1
+        return self
 
     def __str__(self):
         return self.name + "_" + str(self.index)
@@ -175,9 +205,10 @@ class Expression(object):
 class Constraint(object):
 
     def __init__(self, expression, operator, value):
-        self.expression = expression.tolist()
+        self.expression = expression.to_list()
         self.compare_operator = operator
         self.compare_value = value
+        self.dual = None    # dual variable for the constraint
 
 
 if __name__ == "__main__":
@@ -201,3 +232,4 @@ if __name__ == "__main__":
     print(f.expression)
     print(f.compare_operator)
     print(f.compare_value)
+    print(type(-a <= 2))

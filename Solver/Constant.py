@@ -7,9 +7,7 @@ MINIMIZE = 2
 POSITIVE = 1
 NEGATIVE = -1
 # constraint operator
-GE = 1
-GT = 2
-LE = 3
-LT = 4
-EQ = 5
-NE = 6
+LE = 1
+GE = -1
+EQ = 0
+NE = 2

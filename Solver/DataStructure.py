@@ -123,13 +123,15 @@ class Expression(object):
         return Constraint(self, LE, other)
 
     def __lt__(self, other):
-        return Constraint(self, LT, other)
+        print("Wrong operator: '<'")
+        return None
 
     def __ge__(self, other):
         return Constraint(self, GE, other)
 
     def __gt__(self, other):
-        return Constraint(self, GT, other)
+        print("Wrong operator: '>'")
+        return None
 
     def __eq__(self, other):
         return Constraint(self, EQ, other)
@@ -196,10 +198,11 @@ class Expression(object):
         return self / other
 
     def to_list(self):
-        return [
+        self.variable_list = [
             (x[0], x[1], x[2] * self.sign_list[i])
             for i, x in enumerate(self.variable_list)
         ]
+        return self
 
 
 class Constraint(object):

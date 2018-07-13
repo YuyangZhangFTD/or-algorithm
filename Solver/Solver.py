@@ -18,7 +18,7 @@ class LpSolver(object):
         # 0 for init
         # 1 for max (standard)
         # 2 for min
-        self.obj_type = 0
+        self.objective_type = 0
 
         # objective function
         self.objective = None
@@ -57,6 +57,8 @@ class LpSolver(object):
         self.A = None
         self.b = None
         self.c = None
+        self.m = None
+        self.n = None
 
     def add_variable(self, name=None, index=None, lb=0, ub=INF):
         if not name:
@@ -171,7 +173,7 @@ class LpSolver(object):
         else:
             print("Wrong expression for objective function")
         if obj_type in (MINIMIZE, MAXIMIZE):
-            self.obj_type = obj_type
+            self.objective_type = obj_type
         else:
             print("Wrong objective type")
 
@@ -197,6 +199,35 @@ class LpSolver(object):
 
         return False
 
+    def _standard_form(self):
+        """
+        1. recourse coefficients are non-negative
+        2. objective is maximize
+        3. constraints are equation
+        4. decision variables are non-negative
+        :return:
+        """
+        if self.objective_type == 2:
+            self.objective_type = 1
+            self.objective = -self.objective
+
+        for name in self.constraints_collector.keys():
+            for index, constr in self.constraints_collector[name].itmes():
+
+                if constr.compare_value < 0:
+                    constr.compare_value *= -1
+                    constr.compare_operator *= -1
+                    constr.expression = [(x[0], x[1], x[2] * -1) for x in constr.expression]
+
+                if constr.compare_operator == LE:
+                    pass
+                elif constr.compare_operator == GE:
+                    pass
+                else:
+                    print("Not equal operator haven't been implemented")
+                pass
+        pass
+
 
 if __name__ == "__main__":
     model = LpSolver()
@@ -219,10 +250,17 @@ if __name__ == "__main__":
         [y[i, j] > 4 for i in range(2) for j in range(2)],
         name="v", index=[(i, j) for i in range(2) for j in range(2)]
     )
+    print(model.constraints_index)
+    k = model.add_constraint(
+        sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
+        name="k"
+    )
+    print(model.constraints_index)
     print(u)
     print(v)
-    model.set_objective(x+y[0, 0], MAXIMIZE)
-    print(model.objective)
-    print(model.obj_type)
-    print(sum([y[i, j] for i in range(2) for j in range(2)]))
-
+    print(k)
+    print(model.constraints_collector)
+    # model.set_objective(x+y[0, 0], MAXIMIZE)
+    # print(model.objective)
+    # print(model.obj_type)
+    # print(sum([y[i, j] for i in range(2) for j in range(2)]))

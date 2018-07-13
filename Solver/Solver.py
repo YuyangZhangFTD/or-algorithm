@@ -61,6 +61,10 @@ class LpSolver(object):
         self.n = None
 
     def add_variable(self, name=None, index=None, lb=0, ub=INF):
+        if lb >= ub:
+            print("lower bound must be less than upper bound")
+            return None
+
         if not name:
             name = "var"
         elif name == "var":
@@ -82,6 +86,10 @@ class LpSolver(object):
 
     # TODO(optimize): the input format should be checked
     def add_variables(self, name=None, index=None, lb=0, ub=INF):
+        if lb >= ub:
+            print("lower bound must be less than upper bound")
+            return None
+
         if not name:
             name = "var"
         elif name == "var":
@@ -119,7 +127,7 @@ class LpSolver(object):
 
         if isinstance(constraint, Constraint):
             # check whether variables exist in model
-            if self._variable_check(constraint):
+            if not self._variables_in_model(constraint):
                 return None
             self.constraints_collector[name][index] = constraint
             self.constraints_constraint2index[(name, index)] = self.constraints_index
@@ -143,7 +151,7 @@ class LpSolver(object):
 
         # check whether variables exist in model
         for constr in constraints:
-            if self._variable_check(constr):
+            if not self._variables_in_model(constr):
                 return None
 
         if len(index) == len(constraints):
@@ -167,7 +175,7 @@ class LpSolver(object):
 
     def set_objective(self, obj, obj_type=MINIMIZE):
         if isinstance(obj, Expression):
-            if self._variable_check(obj):
+            if not self._variables_in_model(obj):
                 return None
             self.objective = obj
         else:
@@ -177,29 +185,29 @@ class LpSolver(object):
         else:
             print("Wrong objective type")
 
-    def _variable_check(self, expr):
+    def _variables_in_model(self, expr):
         """
-        if there are any variables not in model, return True
+        if there are any variables not in model, return False
         :param expr:
         :return:
         """
         if isinstance(expr, Expression):
             expr_list = expr.variable_list
         elif isinstance(expr, Constraint):
-            expr_list = expr.expression
+            expr_list = expr.expression.variable_list
         else:
             print(str(type(expr)) + " can't be checked")
-            return True
+            return False
 
         variable_keys = self.variables_variable2index.keys()
-        for name, index, coefficient in expr_list:
+        for name, index, coefficient, _, _ in expr_list:
             if (name, index) not in variable_keys:
                 print(name + " " + str(index) + " not in model")
-                return True
+                return False
 
-        return False
+        return True
 
-    def _standard_form(self):
+    def _2_standard_form(self):
         """
         1. recourse coefficients are non-negative
         2. objective is maximize
@@ -217,15 +225,25 @@ class LpSolver(object):
                 if constr.compare_value < 0:
                     constr.compare_value *= -1
                     constr.compare_operator *= -1
-                    constr.expression = [(x[0], x[1], x[2] * -1) for x in constr.expression]
+                    constr.expression = [(tmp_x[0], tmp_x[1], tmp_x[2] * -1) for tmp_x in constr.expression]
 
                 if constr.compare_operator == LE:
-                    pass
+                    slack_variable = self.add_variable(name="slack")
+                    constr.expression += slack_variable
+                    constr.compare_operator = EQ
                 elif constr.compare_operator == GE:
-                    pass
-                else:
+                    tightening_variable = self.add_variable(name="tightening")
+                    constr.expression -= tightening_variable
+                    constr.compare_operator = EQ
+                elif constr.compare_operator == EQ:
+                    continue
+                elif constr.compare_operator == NE:
                     print("Not equal operator haven't been implemented")
-                pass
+                else:
+                    print("Wrong operator in constraint")
+
+
+
         pass
 
 
@@ -241,13 +259,15 @@ if __name__ == "__main__":
     print(type(x))
     print(x.name)
     print(x.index)
+    print(x.lower_bound)
+    print(x.upper_bound)
     print(y)
     print(type(y[0, 0]))
     print(y[0, 0].name)
     print(y[0, 0].index)
     u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
     v = model.add_constraints(
-        [y[i, j] > 4 for i in range(2) for j in range(2)],
+        [y[i, j] >= 4 for i in range(2) for j in range(2)],
         name="v", index=[(i, j) for i in range(2) for j in range(2)]
     )
     print(model.constraints_index)
@@ -255,12 +275,21 @@ if __name__ == "__main__":
         sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
         name="k"
     )
-    print(model.constraints_index)
     print(u)
     print(v)
     print(k)
     print(model.constraints_collector)
-    # model.set_objective(x+y[0, 0], MAXIMIZE)
-    # print(model.objective)
-    # print(model.obj_type)
-    # print(sum([y[i, j] for i in range(2) for j in range(2)]))
+    c = y[0, 0] + y[0, 1]
+    print(type(c))
+    c += y[1, 1]
+    print(type(c))
+    d = c <= 4
+    print(type(d))
+    print(d.expression.to_list())
+    d.expression -= y[1, 0]
+    print(type(d))
+    print(d.expression.to_list())
+    model.set_objective(x+y[0, 0], MAXIMIZE)
+    print(model.objective)
+    print(model.objective_type)
+    print(sum([y[i, j] for i in range(2) for j in range(2)]))

@@ -73,13 +73,15 @@ class Variable(object):
         return Constraint(Expression(self), LE, other)
 
     def __lt__(self, other):
-        return Constraint(Expression(self), LT, other)
+        print("Wrong operator: '<'")
+        return None
 
     def __ge__(self, other):
         return Constraint(Expression(self), GE, other)
 
     def __gt__(self, other):
-        return Constraint(Expression(self), GT, other)
+        print("Wrong operator: '>'")
+        return None
 
     def __eq__(self, other):
         return Constraint(Expression(self), EQ, other)
@@ -104,7 +106,7 @@ class Expression(object):
 
     def __init__(self, variable=None):
 
-        # [(variable_name, variable_index, variable_coefficient), ...]
+        # [(variable_name, variable_index, variable_coefficient, variable_lb, variable_ub), ...]
         self.variable_list = list()
 
         # [POSITIVE, NEGATIVE, ...]
@@ -114,7 +116,9 @@ class Expression(object):
             self.variable_list.append((
                 variable.name,
                 variable.index,
-                variable.coefficient
+                variable.coefficient,
+                variable.lower_bound,
+                variable.upper_bound
             ))
             self.sign_list.append(variable.sign)
             variable.clean()
@@ -145,7 +149,13 @@ class Expression(object):
 
     def __add__(self, other):
         if isinstance(other, Variable):
-            self.variable_list.append((other.name, other.index, other.coefficient))
+            self.variable_list.append((
+                other.name,
+                other.index,
+                other.coefficient,
+                other.lower_bound,
+                other.upper_bound
+            ))
             self.sign_list.append(other.sign)
             other.clean()
             return self
@@ -159,7 +169,13 @@ class Expression(object):
 
     def __sub__(self, other):
         if isinstance(other, Variable):
-            self.variable_list.append((other.name, other.index, other.coefficient))
+            self.variable_list.append((
+                other.name,
+                other.index,
+                other.coefficient,
+                other.lower_bound,
+                other.upper_bound
+            ))
             self.sign_list.append(-1 * other.sign)
             other.clean()
             return self
@@ -172,7 +188,7 @@ class Expression(object):
     def __mul__(self, other):
         if isinstance(other, numbers.Real):
             self.variable_list = list(map(
-                lambda x: (x[0], x[1], x[2] * other),
+                lambda x: (x[0], x[1], x[2] * other, x[3], x[4]),
                 self.variable_list
             ))
             return self
@@ -186,7 +202,7 @@ class Expression(object):
     def __truediv__(self, other):
         if isinstance(other, numbers.Real):
             self.variable_list = list(map(
-                lambda x: (x[0], x[1], x[2] / other),
+                lambda x: (x[0], x[1], x[2] / other, x[3], x[4]),
                 self.variable_list
             ))
             return self
@@ -198,17 +214,17 @@ class Expression(object):
         return self / other
 
     def to_list(self):
-        self.variable_list = [
-            (x[0], x[1], x[2] * self.sign_list[i])
+        return [
+            (x[0], x[1], x[2] * self.sign_list[i], x[3], x[4])
             for i, x in enumerate(self.variable_list)
         ]
-        return self
 
 
 class Constraint(object):
 
     def __init__(self, expression, operator, value):
-        self.expression = expression.to_list()
+        # self.expression = expression.to_list()
+        self.expression = expression
         self.compare_operator = operator
         self.compare_value = value
         self.dual = None    # dual variable for the constraint

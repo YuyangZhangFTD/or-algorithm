@@ -107,13 +107,13 @@ class Expression(object):
     def __init__(self, variable=None):
 
         # [(variable_name, variable_index, variable_coefficient, variable_lb, variable_ub), ...]
-        self.variable_list = list()
+        self.variables_list = list()
 
         # [POSITIVE, NEGATIVE, ...]
         self.sign_list = list()
 
         if isinstance(variable, Variable):
-            self.variable_list.append((
+            self.variables_list.append((
                 variable.name,
                 variable.index,
                 variable.coefficient,
@@ -149,7 +149,7 @@ class Expression(object):
 
     def __add__(self, other):
         if isinstance(other, Variable):
-            self.variable_list.append((
+            self.variables_list.append((
                 other.name,
                 other.index,
                 other.coefficient,
@@ -160,7 +160,7 @@ class Expression(object):
             other.clean()
             return self
         elif isinstance(other, Expression):
-            self.variable_list += other.variable_list
+            self.variables_list += other.variables_list
             self.sign_list += other.sign_list
             return self
         else:
@@ -169,7 +169,7 @@ class Expression(object):
 
     def __sub__(self, other):
         if isinstance(other, Variable):
-            self.variable_list.append((
+            self.variables_list.append((
                 other.name,
                 other.index,
                 other.coefficient,
@@ -187,9 +187,9 @@ class Expression(object):
 
     def __mul__(self, other):
         if isinstance(other, numbers.Real):
-            self.variable_list = list(map(
+            self.variables_list = list(map(
                 lambda x: (x[0], x[1], x[2] * other, x[3], x[4]),
-                self.variable_list
+                self.variables_list
             ))
             return self
         else:
@@ -201,9 +201,9 @@ class Expression(object):
 
     def __truediv__(self, other):
         if isinstance(other, numbers.Real):
-            self.variable_list = list(map(
+            self.variables_list = list(map(
                 lambda x: (x[0], x[1], x[2] / other, x[3], x[4]),
-                self.variable_list
+                self.variables_list
             ))
             return self
         else:
@@ -216,7 +216,7 @@ class Expression(object):
     def to_list(self):
         return [
             (x[0], x[1], x[2] * self.sign_list[i], x[3], x[4])
-            for i, x in enumerate(self.variable_list)
+            for i, x in enumerate(self.variables_list)
         ]
 
 
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     print(d)
     print(isinstance(a + b, Expression))
     print(isinstance(e, Expression))
-    print(e.variable_list)
+    print(e.variables_list)
     print(e.sign_list)
     f = e <= 3
     print(f.expression)

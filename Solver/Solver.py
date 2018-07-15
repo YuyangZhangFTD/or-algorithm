@@ -192,9 +192,9 @@ class LpSolver(object):
         :return:
         """
         if isinstance(expr, Expression):
-            expr_list = expr.variable_list
+            expr_list = expr.variables_list
         elif isinstance(expr, Constraint):
-            expr_list = expr.expression.variable_list
+            expr_list = expr.expression.variables_list
         else:
             print(str(type(expr)) + " can't be checked")
             return False
@@ -219,13 +219,53 @@ class LpSolver(object):
             self.objective_type = 1
             self.objective = -self.objective
 
+        ub_dict = defaultdict(dict)
+
         for name in self.constraints_collector.keys():
-            for index, constr in self.constraints_collector[name].itmes():
+            for index, constr in self.constraints_collector[name].items():
+
+                # TODO
+                # x' = x - lb and x <= ub
+                # var: (name, index, coefficient, lb, ub)
+                for i, var in enumerate(constr.expression.variables_list):
+
+                    # -inf <= x <= inf, x = x' - x''
+                    if var[3] == -INF and var[4] == INF:
+
+                        pass
+
+                    # -inf <= x <= c  ==>  c <= x' <= inf
+                    elif var[3] == -INF and var[4] != INF:
+                        constr.expression.sign_list[i] *= -1
+                        var[3], var[4] = -var[4], -var[3]
+
+                    # c <= x <= inf  ==> 0 <= x' <= inf
+                    if var[3] != 0:
+                        # x' = x - lb
+                        # s * c * (x' + lb) = b
+                        # s * c * x' = b - s * c * lb
+                        constr.compare_value -= var[3] * var[2] * constr.expression.sign_list[i]
+
+                    if var[4] != INF or (var[3] == -INF and var[4]):
+                        # lb <= x <= ub
+                        # x' = x - lb
+                        # 0 <= x' <= ub - lb
+                        # add constraint: x' + x_s == ub - lb
+                        ub = var[4] - var[3]
+                        slack_variable = self.add_variable(name="slack")
+                        ub_constr = self.variables_collector[var[0]][var[1]] + slack_variable == ub
+                        ub_dict["ub"][self.constraints_index] = ub_constr
+                        self.constraints_constraint2index[("ub", self.constraints_index)] = self.constraints_index
+                        self.constraints_index2constraint[self.constraints_index] = ("ub", self.constraints_index)
+                        self.constraints_index += 1
 
                 if constr.compare_value < 0:
                     constr.compare_value *= -1
                     constr.compare_operator *= -1
-                    constr.expression = [(tmp_x[0], tmp_x[1], tmp_x[2] * -1) for tmp_x in constr.expression]
+                    constr.expression.variables_list = [
+                        (tmp_x[0], tmp_x[1], tmp_x[2] * -1, tmp_x[3], tmp_x[4])
+                        for tmp_x in constr.expression
+                    ]
 
                 if constr.compare_operator == LE:
                     slack_variable = self.add_variable(name="slack")
@@ -242,54 +282,67 @@ class LpSolver(object):
                 else:
                     print("Wrong operator in constraint")
 
-
-
-        pass
+        self.constraints_collector.update(ub_dict)
 
 
 if __name__ == "__main__":
     model = LpSolver()
-    x = model.add_variable(name="x")
-    y = model.add_variables(name="y", index=[(i, j) for i in range(2) for j in range(2)])
-    print(model.variables_index)
-    print(model.variables_collector)
-    print(model.variables_variable2index)
-    print(model.variables_index2variable)
-    print(x)
-    print(type(x))
-    print(x.name)
-    print(x.index)
-    print(x.lower_bound)
-    print(x.upper_bound)
-    print(y)
-    print(type(y[0, 0]))
-    print(y[0, 0].name)
-    print(y[0, 0].index)
-    u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
-    v = model.add_constraints(
-        [y[i, j] >= 4 for i in range(2) for j in range(2)],
-        name="v", index=[(i, j) for i in range(2) for j in range(2)]
-    )
-    print(model.constraints_index)
-    k = model.add_constraint(
-        sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
-        name="k"
-    )
-    print(u)
-    print(v)
-    print(k)
-    print(model.constraints_collector)
-    c = y[0, 0] + y[0, 1]
-    print(type(c))
-    c += y[1, 1]
-    print(type(c))
-    d = c <= 4
-    print(type(d))
-    print(d.expression.to_list())
-    d.expression -= y[1, 0]
-    print(type(d))
-    print(d.expression.to_list())
-    model.set_objective(x+y[0, 0], MAXIMIZE)
-    print(model.objective)
-    print(model.objective_type)
-    print(sum([y[i, j] for i in range(2) for j in range(2)]))
+    # x = model.add_variable(name="x")
+    # y = model.add_variables(name="y", index=[(i, j) for i in range(2) for j in range(2)])
+    # print(model.variables_index)
+    # print(model.variables_collector)
+    # print(model.variables_variable2index)
+    # print(model.variables_index2variable)
+    # print(x)
+    # print(type(x))
+    # print(x.name)
+    # print(x.index)
+    # print(x.lower_bound)
+    # print(x.upper_bound)
+    # print(y)
+    # print(type(y[0, 0]))
+    # print(y[0, 0].name)
+    # print(y[0, 0].index)
+    # u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
+    # v = model.add_constraints(
+    #     [y[i, j] >= 4 for i in range(2) for j in range(2)],
+    #     name="v", index=[(i, j) for i in range(2) for j in range(2)]
+    # )
+    # print(model.constraints_index)
+    # k = model.add_constraint(
+    #     sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
+    #     name="k"
+    # )
+    # print(u)
+    # print(v)
+    # print(k)
+    # print(model.constraints_collector)
+    # c = y[0, 0] + y[0, 1]
+    # print(type(c))
+    # c += y[1, 1]
+    # print(type(c))
+    # d = c <= 4
+    # print(type(d))
+    # print(d.expression.to_list())
+    # d.expression -= y[1, 0]
+    # print(type(d))
+    # print(d.expression.to_list())
+    # model.set_objective(x+y[0, 0], MAXIMIZE)
+    # print(model.objective)
+    # print(model.objective_type)
+    # print(sum([y[i, j] for i in range(2) for j in range(2)]))
+    x = model.add_variable(name="x", lb=-10)
+    y = model.add_variable(name="y", lb=-INF, ub=0)
+    c1 = model.add_constraint(3 * x + 2 * y <= 10, name="c", index=1)
+    for item in model.constraints_collector.values():
+        for tmp in item.values():
+            print(tmp.expression.variables_list)
+            print(tmp.compare_value)
+            print(tmp.compare_operator)
+    print("*"*100)
+    model._2_standard_form()
+    for item in model.constraints_collector.values():
+        for tmp in item.values():
+            print(tmp.expression.variables_list)
+            print(tmp.compare_value)
+            print(tmp.compare_operator)

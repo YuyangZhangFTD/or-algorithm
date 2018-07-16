@@ -296,6 +296,12 @@ class LpSolver(object):
 
         self.constraints_collector.update(ub_dict)
 
+    def _2_matrix(self):
+        pass
+
+    def solve(self):
+        pass
+
 
 if __name__ == "__main__":
     model = LpSolver()

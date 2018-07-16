@@ -2,6 +2,7 @@ import numbers
 import numpy as np
 
 from Constant import *
+from Error import *
 
 
 class Variable(object):
@@ -30,8 +31,7 @@ class Variable(object):
             finally:
                 self.clean()
         else:
-            print("'+' is not implemented between Variable and " + str(type(other)))
-            return None
+            raise SolverError("'+' is not implemented between Variable and " + str(type(other)))
 
     # for using built-in function sum(Iterable, start)
     # sum([x1,x2,...]) will be 0 + x1 + x2 + ...
@@ -48,16 +48,14 @@ class Variable(object):
             finally:
                 self.clean()
         else:
-            print("'-' is not implemented between Variable and " + str(type(other)))
-            return None
+            raise SolverError("'-' is not implemented between Variable and " + str(type(other)))
 
     def __mul__(self, other):
         if isinstance(other, numbers.Real):
             self.coefficient *= other
             return self
         else:
-            print("Not supported type for " + str(type(other)))
-            return None
+            raise SolverError("Not supported type for " + str(type(other)))
 
     def __rmul__(self, other):
         return self * other
@@ -73,15 +71,13 @@ class Variable(object):
         return Constraint(Expression(self), LE, other)
 
     def __lt__(self, other):
-        print("Wrong operator: '<'")
-        return None
+        raise SolverError("Wrong operator: '<'")
 
     def __ge__(self, other):
         return Constraint(Expression(self), GE, other)
 
     def __gt__(self, other):
-        print("Wrong operator: '>'")
-        return None
+        raise SolverError("Wrong operator: '>'")
 
     def __eq__(self, other):
         return Constraint(Expression(self), EQ, other)
@@ -127,15 +123,13 @@ class Expression(object):
         return Constraint(self, LE, other)
 
     def __lt__(self, other):
-        print("Wrong operator: '<'")
-        return None
+        raise SolverError("Wrong operator: '<'")
 
     def __ge__(self, other):
         return Constraint(self, GE, other)
 
     def __gt__(self, other):
-        print("Wrong operator: '>'")
-        return None
+        raise SolverError("Wrong operator: '>'")
 
     def __eq__(self, other):
         return Constraint(self, EQ, other)
@@ -164,8 +158,7 @@ class Expression(object):
             self.sign_list += other.sign_list
             return self
         else:
-            print("'+' is not implemented between Expression and " + str(type(other)))
-            return None
+            raise SolverError("'+' is not implemented between Expression and " + str(type(other)))
 
     def __sub__(self, other):
         if isinstance(other, Variable):
@@ -182,8 +175,7 @@ class Expression(object):
         elif isinstance(other, Expression):
             return self + (-other)
         else:
-            print("'-' is not implemented between Expression and " + str(type(other)))
-            return None
+            raise SolverError("'-' is not implemented between Expression and " + str(type(other)))
 
     def __mul__(self, other):
         if isinstance(other, numbers.Real):
@@ -193,8 +185,7 @@ class Expression(object):
             ))
             return self
         else:
-            print("'*' is not implemented between Expression and " + str(type(other)))
-            return None
+            raise SolverError("'*' is not implemented between Expression and " + str(type(other)))
 
     def __rmul__(self, other):
         return self * other
@@ -207,8 +198,7 @@ class Expression(object):
             ))
             return self
         else:
-            print("'/' is not implemented between Expression and " + str(type(other)))
-            return None
+            raise SolverError("'/' is not implemented between Expression and " + str(type(other)))
 
     def __rtruediv__(self, other):
         return self / other

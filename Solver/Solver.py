@@ -3,6 +3,7 @@ import numpy.linalg as la
 from collections import defaultdict
 
 from DataStructure import *
+from Error import *
 
 
 class LpSolver(object):
@@ -60,21 +61,21 @@ class LpSolver(object):
         self.m = None
         self.n = None
 
+        # temporary attribute
+        self.variables_standard_dict = dict
+
     def add_variable(self, name=None, index=None, lb=0, ub=INF):
         if lb >= ub:
-            print("lower bound must be less than upper bound")
-            return None
+            raise SolverError("lower bound must be less than upper bound")
 
         if not name:
             name = "var"
         elif name == "var":
-            print("'var' is built-in name, rename your variable")
-            return None
+            raise SolverError("'var' is built-in name, rename your variable")
 
         index = index if index else self.variables_index
         if (name, index) in self.variables_collector.keys():
-            print(name + " " + str(index) + " is used before")
-            return None
+            raise SolverError(name + " " + str(index) + " is used before")
 
         var = Variable(name=name, index=index, lb=lb, ub=ub)
 
@@ -87,18 +88,15 @@ class LpSolver(object):
     # TODO(optimize): the input format should be checked
     def add_variables(self, name=None, index=None, lb=0, ub=INF):
         if lb >= ub:
-            print("lower bound must be less than upper bound")
-            return None
+            raise SolverError("lower bound must be less than upper bound")
 
         if not name:
             name = "var"
         elif name == "var":
-            print("'var' is built-in name, rename your variable")
-            return None
+            raise SolverError("'var' is built-in name, rename your variable")
 
         if not index:
-            print("index isn't specified for variables")
-            return None
+            raise SolverError("index isn't specified for variables")
 
         vars_dict = dict()
 
@@ -116,43 +114,38 @@ class LpSolver(object):
         if not name:
             name = "constr"
         elif name == "constr":
-            print("'constr' is built-in name, rename your constraint")
-            return None
+            raise SolverError("'constr' is built-in name, rename your constraint")
 
         index = index if index else self.constraints_index
 
         if name != "constr" and index in self.constraints_collector[name].keys():
-            print(name + " " + str(index) + " already exists in model")
-            return None
+            raise SolverError(name + " " + str(index) + " already exists in model")
 
         if isinstance(constraint, Constraint):
             # check whether variables exist in model
             if not self._variables_in_model(constraint):
-                return None
+                raise SolverError("There are some variables not in model")
             self.constraints_collector[name][index] = constraint
             self.constraints_constraint2index[(name, index)] = self.constraints_index
             self.constraints_index2constraint[self.constraints_index] = (name, index)
             self.constraints_index += 1
             return constraint
         else:
-            print(str(type(constraint)) + " can't be added as constraint")
-            return None
+            raise SolverError(str(type(constraint)) + " can't be added as constraint")
 
     def add_constraints(self, constraints=None, name=None, index=None):
         if not name:
             name = "constr"
         elif name == "constr":
-            print("'constr' is built-in name, rename your constraint")
-            return None
+            raise SolverError("'constr' is built-in name, rename your constraint")
 
         if not index:
-            print("Please specify the index for constraints")
-            return None
+            raise SolverError("Please specify the index for constraints")
 
         # check whether variables exist in model
         for constr in constraints:
             if not self._variables_in_model(constr):
-                return None
+                raise SolverError("There are some variables not in model")
 
         if len(index) == len(constraints):
             constrs_dict = dict()
@@ -163,27 +156,24 @@ class LpSolver(object):
                     self.constraints_constraint2index[(name, index[i])] = self.constraints_index
                     self.constraints_index += 1
                 else:
-                    print(str(type(constr)) + " can't be added as constraint")
-                    return None
+                    raise SolverError(str(type(constr)) + " can't be added as constraint")
             self.constraints_collector[name].update(constrs_dict)
             return constrs_dict
         else:
-            print("Wrong index input")
-            print(len(index))
-            print(len(constraints))
-            return None
+            raise SolverError("Wrong index input")
 
     def set_objective(self, obj, obj_type=MINIMIZE):
         if isinstance(obj, Expression):
             if not self._variables_in_model(obj):
-                return None
+                raise SolverError("Variable not in model")
             self.objective = obj
         else:
-            print("Wrong expression for objective function")
+            raise SolverError("Wrong expression for objective function")
+
         if obj_type in (MINIMIZE, MAXIMIZE):
             self.objective_type = obj_type
         else:
-            print("Wrong objective type")
+            raise SolverError("Wrong objective type")
 
     def _variables_in_model(self, expr):
         """
@@ -196,8 +186,7 @@ class LpSolver(object):
         elif isinstance(expr, Constraint):
             expr_list = expr.expression.variables_list
         else:
-            print(str(type(expr)) + " can't be checked")
-            return False
+            raise SolverError((str(type(expr)) + " can't be checked"))
 
         variable_keys = self.variables_variable2index.keys()
         for name, index, coefficient, _, _ in expr_list:
@@ -222,127 +211,153 @@ class LpSolver(object):
         ub_dict = defaultdict(dict)
 
         for name in self.constraints_collector.keys():
-            for index, constr in self.constraints_collector[name].items():
+            for index, constraint in self.constraints_collector[name].items():
 
-                # TODO
                 # x' = x - lb and x <= ub
                 # var: (name, index, coefficient, lb, ub)
-                for i, var in enumerate(constr.expression.variables_list):
+                for i, var in enumerate(constraint.expression.variables_list):
 
-                    # -inf <= x <= inf, x = x' - x''
-                    if var[3] == -INF and var[4] == INF:
+                    # temporary variable: tuple ===> list
+                    var = list(var)
 
-                        pass
+                    if var[3] == -INF:
 
-                    # -inf <= x <= c  ==>  c <= x' <= inf
-                    elif var[3] == -INF and var[4] != INF:
-                        constr.expression.sign_list[i] *= -1
-                        var[3], var[4] = -var[4], -var[3]
+                        # -inf <= x <= inf
+                        # x = x' - x''
+                        if var[4] == INF:
+                            # TODO: to be implemented
+                            raise SolverNotImplementedError("No constraint variable is not supported now")
 
-                    # c <= x <= inf  ==> 0 <= x' <= inf
+                        # -inf <= x <= c
+                        # x' = -x
+                        # -c <= x' <= inf
+                        else:
+                            constraint.expression.sign_list[i] *= -1
+                            var[3], var[4] = -var[4], -var[3]
+
+                    # c <= x <= inf/c
+                    # x' = x - lb
+                    # x' + lb = x
+                    # s * c * (x' + lb) = b
+                    # s * c * x' = b - s * c * lb
+                    # 0 <= x' <= inf/c
                     if var[3] != 0:
-                        # x' = x - lb
-                        # s * c * (x' + lb) = b
-                        # s * c * x' = b - s * c * lb
-                        constr.compare_value -= var[3] * var[2] * constr.expression.sign_list[i]
+                        constraint.compare_value -= var[3] * var[2] * constraint.expression.sign_list[i]
+                        var[4] = INF if var[4] == INF else var[4] - var[3]
+                        var[3] = 0
 
-                    if var[4] != INF or (var[3] == -INF and var[4]):
-                        # lb <= x <= ub
-                        # x' = x - lb
-                        # 0 <= x' <= ub - lb
-                        # add constraint: x' + x_s == ub - lb
-                        ub = var[4] - var[3]
+                    # 0 <= x <= ub
+                    # 0 <= x' <= INF, 0 <= x_s <= INF
+                    # add constraint: x' + x_s = ub
+                    if var[4] != INF:
                         slack_variable = self.add_variable(name="slack")
-                        ub_constr = self.variables_collector[var[0]][var[1]] + slack_variable == ub
-                        ub_dict["ub"][self.constraints_index] = ub_constr
+                        ub_constraint = self.variables_collector[var[0]][var[1]] + slack_variable == var[4]
+
+                        # TODO: is there better way to format the variable bound in upper bound constraint?
+                        ub_constraint.expression.variables_list[0] = (var[0], var[1], 1, 0, INF)
+                        ub_constraint.standard_variable_list = ub_constraint.expression.to_list()
+                        ub_constraint.is_standard = True
+
+                        ub_dict["ub"][self.constraints_index] = ub_constraint
                         self.constraints_constraint2index[("ub", self.constraints_index)] = self.constraints_index
                         self.constraints_index2constraint[self.constraints_index] = ("ub", self.constraints_index)
                         self.constraints_index += 1
+                        var[4] = INF
 
-                if constr.compare_value < 0:
-                    constr.compare_value *= -1
-                    constr.compare_operator *= -1
-                    constr.expression.variables_list = [
+                    constraint.expression.variables_list[i] = tuple([var[i] for i in range(5)])
+
+                if constraint.compare_value < 0:
+                    constraint.compare_value *= -1
+                    constraint.compare_operator *= -1
+                    constraint.expression.variables_list = [
                         (tmp_x[0], tmp_x[1], tmp_x[2] * -1, tmp_x[3], tmp_x[4])
-                        for tmp_x in constr.expression
+                        for tmp_x in constraint.expression
                     ]
 
-                if constr.compare_operator == LE:
+                if constraint.compare_operator == LE:
                     slack_variable = self.add_variable(name="slack")
-                    constr.expression += slack_variable
-                    constr.compare_operator = EQ
-                elif constr.compare_operator == GE:
+                    constraint.expression += slack_variable
+                    constraint.compare_operator = EQ
+                elif constraint.compare_operator == GE:
                     tightening_variable = self.add_variable(name="tightening")
-                    constr.expression -= tightening_variable
-                    constr.compare_operator = EQ
-                elif constr.compare_operator == EQ:
-                    continue
-                elif constr.compare_operator == NE:
-                    print("Not equal operator haven't been implemented")
+                    constraint.expression -= tightening_variable
+                    constraint.compare_operator = EQ
+                elif constraint.compare_operator == EQ:
+                    pass
+                elif constraint.compare_operator == NE:
+                    # TODO: to be implemented
+                    raise SolverNotImplementedError("Not equal operator haven't been implemented")
                 else:
-                    print("Wrong operator in constraint")
+                    raise SolverError("Wrong operator in constraint")
+
+                # coefficient * sign
+                constraint.standard_variable_list = constraint.expression.to_list()
+                constraint.is_standard = True
 
         self.constraints_collector.update(ub_dict)
 
 
 if __name__ == "__main__":
     model = LpSolver()
-    # x = model.add_variable(name="x")
-    # y = model.add_variables(name="y", index=[(i, j) for i in range(2) for j in range(2)])
-    # print(model.variables_index)
-    # print(model.variables_collector)
-    # print(model.variables_variable2index)
-    # print(model.variables_index2variable)
-    # print(x)
-    # print(type(x))
-    # print(x.name)
-    # print(x.index)
-    # print(x.lower_bound)
-    # print(x.upper_bound)
-    # print(y)
-    # print(type(y[0, 0]))
-    # print(y[0, 0].name)
-    # print(y[0, 0].index)
-    # u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
-    # v = model.add_constraints(
-    #     [y[i, j] >= 4 for i in range(2) for j in range(2)],
-    #     name="v", index=[(i, j) for i in range(2) for j in range(2)]
-    # )
-    # print(model.constraints_index)
-    # k = model.add_constraint(
-    #     sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
-    #     name="k"
-    # )
-    # print(u)
-    # print(v)
-    # print(k)
-    # print(model.constraints_collector)
-    # c = y[0, 0] + y[0, 1]
-    # print(type(c))
-    # c += y[1, 1]
-    # print(type(c))
-    # d = c <= 4
-    # print(type(d))
-    # print(d.expression.to_list())
-    # d.expression -= y[1, 0]
-    # print(type(d))
-    # print(d.expression.to_list())
-    # model.set_objective(x+y[0, 0], MAXIMIZE)
-    # print(model.objective)
-    # print(model.objective_type)
-    # print(sum([y[i, j] for i in range(2) for j in range(2)]))
-    x = model.add_variable(name="x", lb=-10)
+    x = model.add_variable(name="x")
+    y = model.add_variables(name="y", index=[(i, j) for i in range(2) for j in range(2)])
+    print(model.variables_index)
+    print(model.variables_collector)
+    print(model.variables_variable2index)
+    print(model.variables_index2variable)
+    print(x)
+    print(type(x))
+    print(x.name)
+    print(x.index)
+    print(x.lower_bound)
+    print(x.upper_bound)
+    print(y)
+    print(type(y[0, 0]))
+    print(y[0, 0].name)
+    print(y[0, 0].index)
+    u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
+    v = model.add_constraints(
+        [y[i, j] >= 4 for i in range(2) for j in range(2)],
+        name="v", index=[(i, j) for i in range(2) for j in range(2)]
+    )
+    print(model.constraints_index)
+    k = model.add_constraint(
+        sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
+        name="k"
+    )
+    print(u)
+    print(v)
+    print(k)
+    print(model.constraints_collector)
+    c = y[0, 0] + y[0, 1]
+    print(type(c))
+    c += y[1, 1]
+    print(type(c))
+    d = c <= 4
+    print(type(d))
+    print(d.expression.to_list())
+    d.expression -= y[1, 0]
+    print(type(d))
+    print(d.expression.to_list())
+    model.set_objective(x+y[0, 0], MAXIMIZE)
+    print(model.objective)
+    print(model.objective_type)
+    print(sum([y[i, j] for i in range(2) for j in range(2)]))
+    model = LpSolver()
+    x = model.add_variable(name="x", lb=-10, ub=55)
     y = model.add_variable(name="y", lb=-INF, ub=0)
-    c1 = model.add_constraint(3 * x + 2 * y <= 10, name="c", index=1)
+    c1 = model.add_constraint(3 * x + 2 * y >= 10, name="c", index=1)
     for item in model.constraints_collector.values():
         for tmp in item.values():
             print(tmp.expression.variables_list)
             print(tmp.compare_value)
             print(tmp.compare_operator)
-    print("*"*100)
+    print("*" * 100)
     model._2_standard_form()
     for item in model.constraints_collector.values():
         for tmp in item.values():
             print(tmp.expression.variables_list)
             print(tmp.compare_value)
             print(tmp.compare_operator)
+            print(tmp.standard_variable_list)
+            print(tmp.is_standard)

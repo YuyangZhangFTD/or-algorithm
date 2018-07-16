@@ -228,6 +228,8 @@ class Constraint(object):
         self.compare_operator = operator
         self.compare_value = value
         self.dual = None    # dual variable for the constraint
+        self.is_standard = False
+        self.standard_variable_list = None
 
 
 if __name__ == "__main__":

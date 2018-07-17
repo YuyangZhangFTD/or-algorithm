@@ -73,7 +73,7 @@ class LpSolver(object):
         elif name == "var":
             raise SolverError("'var' is built-in name, rename your variable")
 
-        index = index if index else self.variables_index
+        index = index if index is None else self.variables_index
         if (name, index) in self.variables_collector.keys():
             raise SolverError(name + " " + str(index) + " is used before")
 
@@ -116,7 +116,7 @@ class LpSolver(object):
         elif name == "constr":
             raise SolverError("'constr' is built-in name, rename your constraint")
 
-        index = index if index else self.constraints_index
+        index = index if index is None else self.constraints_index
 
         if name != "constr" and index in self.constraints_collector[name].keys():
             raise SolverError(name + " " + str(index) + " already exists in model")
@@ -133,6 +133,7 @@ class LpSolver(object):
         else:
             raise SolverError(str(type(constraint)) + " can't be added as constraint")
 
+    # TODO(optimize): the input format should be checked
     def add_constraints(self, constraints=None, name=None, index=None):
         if not name:
             name = "constr"
@@ -253,7 +254,7 @@ class LpSolver(object):
                         slack_variable = self.add_variable(name="slack")
                         ub_constraint = self.variables_collector[var[0]][var[1]] + slack_variable == var[4]
 
-                        # TODO: is there better way to format the variable bound in upper bound constraint?
+                        # TODO(optimize): is there better way to format the variable bound in upper bound constraint?
                         ub_constraint.expression.variables_list[0] = (var[0], var[1], 1, 0, INF)
                         ub_constraint.standard_variable_list = ub_constraint.expression.to_list()
                         ub_constraint.is_standard = True

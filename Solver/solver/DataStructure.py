@@ -1,8 +1,7 @@
 import numbers
-import numpy as np
 
-from Constant import *
-from Error import *
+from solver.Constant import *
+from solver.Error import *
 
 
 class Variable(object):
@@ -220,6 +219,12 @@ class Constraint(object):
         self.dual = None    # dual variable for the constraint
         self.is_standard = False
         self.standard_variable_list = None
+
+    def to_list(self):
+        return [
+            (x[0], x[1], x[2] * self.expression.sign_list[i], x[3], x[4])
+            for i, x in enumerate(self.expression.variables_list)
+        ]
 
 
 if __name__ == "__main__":

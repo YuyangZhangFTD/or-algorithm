@@ -2,8 +2,8 @@ import numpy as np
 import numpy.linalg as la
 from collections import defaultdict
 
-from DataStructure import *
-from Error import *
+from solver.DataStructure import *
+from solver.Error import *
 
 
 class LpSolver(object):
@@ -14,7 +14,9 @@ class LpSolver(object):
         s.t. Ax <= b
     """
 
-    def __init__(self):
+    def __init__(self, name=None):
+        self.name = name if name is not None else "lp"
+
         # objective type
         # 0 for init
         # 1 for max (standard)
@@ -64,16 +66,22 @@ class LpSolver(object):
         # temporary attribute
         self.variables_standard_dict = dict
 
+        # attribute in simplex
+        self.B = None
+        self.B_inv = None
+        self.B_index = None
+
     def add_variable(self, name=None, index=None, lb=0, ub=INF):
         if lb >= ub:
             raise SolverError("lower bound must be less than upper bound")
 
-        if not name:
+        if name is None:
             name = "var"
         elif name == "var":
             raise SolverError("'var' is built-in name, rename your variable")
 
-        index = index if index is None else self.variables_index
+        index = self.variables_index if index is None else index
+
         if (name, index) in self.variables_collector.keys():
             raise SolverError(name + " " + str(index) + " is used before")
 
@@ -90,7 +98,7 @@ class LpSolver(object):
         if lb >= ub:
             raise SolverError("lower bound must be less than upper bound")
 
-        if not name:
+        if name is None:
             name = "var"
         elif name == "var":
             raise SolverError("'var' is built-in name, rename your variable")
@@ -111,12 +119,12 @@ class LpSolver(object):
         return vars_dict
 
     def add_constraint(self, constraint=None, name=None, index=None):
-        if not name:
+        if name is None:
             name = "constr"
         elif name == "constr":
             raise SolverError("'constr' is built-in name, rename your constraint")
 
-        index = index if index is None else self.constraints_index
+        index = self.constraints_index if index is None is None else index
 
         if name != "constr" and index in self.constraints_collector[name].keys():
             raise SolverError(name + " " + str(index) + " already exists in model")
@@ -135,7 +143,7 @@ class LpSolver(object):
 
     # TODO(optimize): the input format should be checked
     def add_constraints(self, constraints=None, name=None, index=None):
-        if not name:
+        if name is None:
             name = "constr"
         elif name == "constr":
             raise SolverError("'constr' is built-in name, rename your constraint")
@@ -298,73 +306,163 @@ class LpSolver(object):
         self.constraints_collector.update(ub_dict)
 
     def _2_matrix(self):
-        pass
+        self.m, self.n = self.constraints_index, self.variables_index
+        self.A = np.mat(np.zeros((self.m, self.n)))
+        self.b = np.mat(np.zeros((self.m, 1)))
+        self.c = np.mat(np.zeros((self.n, 1)))
+
+        for v in self.objective.to_list():
+            i = self.variables_variable2index[(v[0], v[1])]
+            self.c[i] = v[2]
+
+        for c_n, c_dict in self.constraints_collector.items():
+            for c_i, c_v in c_dict.items():
+                i = self.constraints_constraint2index[(c_n, c_i)]
+                self.b[i] = c_v.compare_value
+                for v_i, v in enumerate(c_v.to_list()):
+                    j = self.variables_variable2index[(v[0], v[1])]
+                    self.A[i, j] = v[2]
+
+    # TODO: how to find initial basic feasible solution in other cases
+    def _find_init_basis(self):
+        B_index = list(range(self.n - self.m, self.n))
+        return B_index
+
+    # TODO: consider the following cases
+    # degeneracy
+    # infeasible
+    # infinity
+    def _simplex(self):
+        B_index = self._find_init_basis()
+        A = self.A
+        b = self.b
+        c = self.c
+        m = self.m
+        n = self.n
+
+        while True:
+
+            CB = c[B_index]  # C_B
+            B = A[:, B_index]  # B matrix
+            B_inv = la.inv(B)  # B^{-1}
+            XB = B_inv * b  # X_B
+            z = CB.T * XB  # z
+
+            # optimality computations
+            r = [(i, c[i] - CB.T * B_inv * A[:, i]) for i in range(n) if i not in B_index]
+            enter_index, enter_check = r[0]
+            for i in range(1, len(r)):
+                if enter_check > r[i][1]:
+                    enter_index, enter_check = r[i]
+
+            if enter_check > 0:
+                break
+
+            # Feasibility computations
+            try:
+                theta = XB / (B_inv * A[:, enter_index])
+            except RuntimeWarning:  # inf is legal
+                pass
+
+            out_index = np.argmin(np.where(theta > 0, theta, INF))
+
+            # reindex
+            B_index = [i if i != B_index[out_index] else enter_index for i in B_index]
+
+        solution = np.mat(np.zeros((n, 1)))
+        for i in range(m):
+            solution[B_index[i], 0] = XB[i]
+
+        self.B = B
+        self.B_inv = B_inv
+        self.B_index = B_index
+        return solution, z
 
     def solve(self):
         pass
 
 
 if __name__ == "__main__":
-    model = LpSolver()
-    x = model.add_variable(name="x")
-    y = model.add_variables(name="y", index=[(i, j) for i in range(2) for j in range(2)])
-    print(model.variables_index)
-    print(model.variables_collector)
-    print(model.variables_variable2index)
-    print(model.variables_index2variable)
-    print(x)
-    print(type(x))
-    print(x.name)
-    print(x.index)
-    print(x.lower_bound)
-    print(x.upper_bound)
-    print(y)
-    print(type(y[0, 0]))
-    print(y[0, 0].name)
-    print(y[0, 0].index)
-    u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
-    v = model.add_constraints(
-        [y[i, j] >= 4 for i in range(2) for j in range(2)],
-        name="v", index=[(i, j) for i in range(2) for j in range(2)]
-    )
-    print(model.constraints_index)
-    k = model.add_constraint(
-        sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
-        name="k"
-    )
-    print(u)
-    print(v)
-    print(k)
-    print(model.constraints_collector)
-    c = y[0, 0] + y[0, 1]
-    print(type(c))
-    c += y[1, 1]
-    print(type(c))
-    d = c <= 4
-    print(type(d))
-    print(d.expression.to_list())
-    d.expression -= y[1, 0]
-    print(type(d))
-    print(d.expression.to_list())
-    model.set_objective(x+y[0, 0], MAXIMIZE)
-    print(model.objective)
-    print(model.objective_type)
-    print(sum([y[i, j] for i in range(2) for j in range(2)]))
-    model = LpSolver()
-    x = model.add_variable(name="x", lb=-10, ub=55)
-    y = model.add_variable(name="y", lb=-INF, ub=0)
-    c1 = model.add_constraint(3 * x + 2 * y >= 10, name="c", index=1)
-    for item in model.constraints_collector.values():
-        for tmp in item.values():
-            print(tmp.expression.variables_list)
-            print(tmp.compare_value)
-            print(tmp.compare_operator)
-    print("*" * 100)
+    # model = LpSolver()
+    # x = model.add_variable(name="x")
+    # y = model.add_variables(name="y", index=[(i, j) for i in range(2) for j in range(2)])
+    # print(model.variables_index)
+    # print(model.variables_collector)
+    # print(model.variables_variable2index)
+    # print(model.variables_index2variable)
+    # print(x)
+    # print(type(x))
+    # print(x.name)
+    # print(x.index)
+    # print(x.lower_bound)
+    # print(x.upper_bound)
+    # print(y)
+    # print(type(y[0, 0]))
+    # print(y[0, 0].name)
+    # print(y[0, 0].index)
+    # u = model.add_constraint(x + y[0, 0] <= 10, name="c", index=0)
+    # v = model.add_constraints(
+    #     [y[i, j] >= 4 for i in range(2) for j in range(2)],
+    #     name="v", index=[(i, j) for i in range(2) for j in range(2)]
+    # )
+    # print(model.constraints_index)
+    # k = model.add_constraint(
+    #     sum([y[i, j] for i in range(2) for j in range(2)]) <= 10,
+    #     name="k"
+    # )
+    # print(u)
+    # print(v)
+    # print(k)
+    # print(model.constraints_collector)
+    # c = y[0, 0] + y[0, 1]
+    # print(type(c))
+    # c += y[1, 1]
+    # print(type(c))
+    # d = c <= 4
+    # print(type(d))
+    # print(d.expression.to_list())
+    # d.expression -= y[1, 0]
+    # print(type(d))
+    # print(d.expression.to_list())
+    # model.set_objective(x+y[0, 0], MAXIMIZE)
+    # print(model.objective)
+    # print(model.objective_type)
+    # print(sum([y[i, j] for i in range(2) for j in range(2)]))
+    # model = LpSolver()
+    # x = model.add_variable(name="x", lb=-10, ub=55)
+    # y = model.add_variable(name="y", lb=-INF, ub=0)
+    # c1 = model.add_constraint(3 * x + 2 * y >= 10, name="c", index=1)
+    # for item in model.constraints_collector.values():
+    #     for tmp in item.values():
+    #         print(tmp.expression.variables_list)
+    #         print(tmp.compare_value)
+    #         print(tmp.compare_operator)
+    # print("*" * 100)
+    # model._2_standard_form()
+    # for item in model.constraints_collector.values():
+    #     for tmp in item.values():
+    #         print(tmp.expression.variables_list)
+    #         print(tmp.compare_value)
+    #         print(tmp.compare_operator)
+    #         print(tmp.standard_variable_list)
+    #         print(tmp.is_standard)
+    # model = LpSolver("test")
+    # x = model.add_variables(name="x", index=[i for i in range(1, 4)])
+    # c1 = model.add_constraint(x[1] + 2 * x[2] + 2 * x[3] <= 20)
+    # c2 = model.add_constraint(2 * x[1] + x[2] + 2 * x[3] <= 20)
+    # c3 = model.add_constraint(2 * x[1] + 2 * x[2] + x[3] <= 20)
+    # model.set_objective(-10 * x[1] - 12 * x[2] - 12 * x[3])
+    # model._2_standard_form()
+    # model._2_matrix()
+    # model._simplex()
+    model = LpSolver("test")
+    x = model.add_variables(name="x", index=[1, 2])
+    model.add_constraint(x[1] + 2 * x[2] <= 8)
+    model.add_constraint(4 * x[1] <= 16)
+    model.add_constraint(4 * x[2] <= 12)
+    model.set_objective(2 * x[1] + 3 * x[2], obj_type=MAXIMIZE)
     model._2_standard_form()
-    for item in model.constraints_collector.values():
-        for tmp in item.values():
-            print(tmp.expression.variables_list)
-            print(tmp.compare_value)
-            print(tmp.compare_operator)
-            print(tmp.standard_variable_list)
-            print(tmp.is_standard)
+    model._2_matrix()
+    solu, z = model._simplex()
+    print(solu)
+    print(z)

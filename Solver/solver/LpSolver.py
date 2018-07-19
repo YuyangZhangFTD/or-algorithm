@@ -364,7 +364,7 @@ class LpSolver(object):
             except RuntimeWarning:  # inf is legal
                 pass
 
-            out_index = np.argmin(np.where(theta > 0, theta, INF))
+            out_index = int(np.argmin(np.where(theta > 0, theta, INF)))
 
             # reindex
             B_index = [i if i != B_index[out_index] else enter_index for i in B_index]
@@ -378,8 +378,15 @@ class LpSolver(object):
         self.B_index = B_index
         return solution, z
 
-    def solve(self):
+    def _assign_value(self):
         pass
+
+    # TODO: assign value to variables
+    def solve(self, method="simplex"):
+        self._2_standard_form()
+        self._2_matrix()
+        if method == "simplex":
+            return self._simplex()
 
 
 if __name__ == "__main__":
@@ -461,8 +468,8 @@ if __name__ == "__main__":
     model.add_constraint(4 * x[1] <= 16)
     model.add_constraint(4 * x[2] <= 12)
     model.set_objective(2 * x[1] + 3 * x[2], obj_type=MAXIMIZE)
-    model._2_standard_form()
-    model._2_matrix()
-    solu, z = model._simplex()
+    # model._2_standard_form()
+    # model._2_matrix()
+    solu, z = model.solve(method="simplex")
     print(solu)
     print(z)

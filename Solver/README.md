@@ -10,9 +10,8 @@ s.t. & & x_1 + 2x_x \leq 8 \\
 \end{aligned}
 $$
 
-``
+```python
 from solver.LpSolver import LpSolver
-
 
 model = LpSolver("lp")
 x = model.add_variables(name="x", index=[1, 2])
@@ -21,6 +20,8 @@ model.add_constraint(4 * x[1] <= 16)
 model.add_constraint(4 * x[2] <= 12)
 model.set_objective(2 * x[1] + 3 * x[2], obj_type=MAXIMIZE)
 solution, objective = model.solve()
+
 print(solution)
 print(objective)
-``
+```
+

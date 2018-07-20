@@ -56,6 +56,9 @@ class LpSolver(object):
         # (constraint_name, constraint_index) : index
         self.constraints_constraint2index = dict()
 
+        # temporary attribute
+        self.free_constraint_variable = dict()
+
         # matrix format
         self.A = None
         self.b = None
@@ -63,8 +66,11 @@ class LpSolver(object):
         self.m = None
         self.n = None
 
-        # temporary attribute
-        self.variables_standard_dict = dict
+        # result
+        self.solution = None
+        self.optimal_value = None
+        self.dual = None
+        self.status = NOT_SOLVED
 
         # attribute in simplex
         self.B = None
@@ -75,10 +81,7 @@ class LpSolver(object):
         if lb >= ub:
             raise SolverError("lower bound must be less than upper bound")
 
-        if name is None:
-            name = "var"
-        elif name == "var":
-            raise SolverError("'var' is built-in name, rename your variable")
+        name = self._name_check(name, default_name="var", default_type=type(Variable))
 
         index = self.variables_index if index is None else index
 
@@ -98,10 +101,7 @@ class LpSolver(object):
         if lb >= ub:
             raise SolverError("lower bound must be less than upper bound")
 
-        if name is None:
-            name = "var"
-        elif name == "var":
-            raise SolverError("'var' is built-in name, rename your variable")
+        name = self._name_check(name, default_name="var", default_type=type(Variable))
 
         if not index:
             raise SolverError("index isn't specified for variables")
@@ -119,10 +119,8 @@ class LpSolver(object):
         return vars_dict
 
     def add_constraint(self, constraint=None, name=None, index=None):
-        if name is None:
-            name = "constr"
-        elif name == "constr":
-            raise SolverError("'constr' is built-in name, rename your constraint")
+
+        name = self._name_check(name, default_name="var", default_type=type(Constraint))
 
         index = self.constraints_index if index is None is None else index
 
@@ -143,10 +141,8 @@ class LpSolver(object):
 
     # TODO(optimize): the input format should be checked
     def add_constraints(self, constraints=None, name=None, index=None):
-        if name is None:
-            name = "constr"
-        elif name == "constr":
-            raise SolverError("'constr' is built-in name, rename your constraint")
+
+        name = self._name_check(name, default_name="var", default_type=type(Constraint))
 
         if not index:
             raise SolverError("Please specify the index for constraints")
@@ -183,6 +179,17 @@ class LpSolver(object):
             self.objective_type = obj_type
         else:
             raise SolverError("Wrong objective type")
+
+    @staticmethod
+    def _name_check(name, default_name=None, default_type=None):
+        if name is None:
+            name = default_name
+        elif name == default_name:
+            raise SolverError(default_name + " is built-in name")
+        elif isinstance(name, str):
+            raise SolverError(str(default_type) + " name must be str")
+
+        return name
 
     def _variables_in_model(self, expr):
         """
@@ -222,9 +229,13 @@ class LpSolver(object):
         for name in self.constraints_collector.keys():
             for index, constraint in self.constraints_collector[name].items():
 
+                # TODO: refactor
                 # x' = x - lb and x <= ub
                 # var: (name, index, coefficient, lb, ub)
                 for i, var in enumerate(constraint.expression.variables_list):
+
+                    if var[0] == "free":
+                        continue
 
                     # temporary variable: tuple ===> list
                     var = list(var)
@@ -234,8 +245,9 @@ class LpSolver(object):
                         # -inf <= x <= inf
                         # x = x' - x''
                         if var[4] == INF:
-                            # TODO: to be implemented
-                            raise SolverNotImplementedError("No constraint variable is not supported now")
+                            free_variable = self.add_variables(name="free_"+var[0]+str(var[1]), index=[0, 1])
+                            var[2] = 0  # coefficient = 0
+                            constraint.expression += free_variable[0] - free_variable[1]
 
                         # -inf <= x <= c
                         # x' = -x
@@ -273,6 +285,7 @@ class LpSolver(object):
                         self.constraints_index += 1
                         var[4] = INF
 
+                    # update variables' coefficient, lower bound and upper bound in constraint
                     constraint.expression.variables_list[i] = tuple([var[i] for i in range(5)])
 
                 if constraint.compare_value < 0:
@@ -288,8 +301,8 @@ class LpSolver(object):
                     constraint.expression += slack_variable
                     constraint.compare_operator = EQ
                 elif constraint.compare_operator == GE:
-                    tightening_variable = self.add_variable(name="tightening")
-                    constraint.expression -= tightening_variable
+                    surplus_variable = self.add_variable(name="surplus")
+                    constraint.expression -= surplus_variable
                     constraint.compare_operator = EQ
                 elif constraint.compare_operator == EQ:
                     pass
@@ -327,6 +340,19 @@ class LpSolver(object):
     def _find_init_basis(self):
         B_index = list(range(self.n - self.m, self.n))
         return B_index
+
+    # TODO： refactor
+    def _assign_value(self):
+
+        for index in range(self.variables_index):
+            var_name, var_index = self.variables_index2variable[index]
+            var = self.variables_collector[var_name][var_index]
+            var.value = self.solution[index]
+
+        for index in range(self.constraints_index):
+            constr_name, constr_index = self.constraints_index2constraint[index]
+            constr = self.variables_collector[constr_name][constr_index]
+            constr.dual = self.dual[index]
 
     # TODO: consider the following cases
     # degeneracy
@@ -376,17 +402,20 @@ class LpSolver(object):
         self.B = B
         self.B_inv = B_inv
         self.B_index = B_index
-        return solution, z
+        self.solution = solution
+        self.optimal_value = z
+        self.dual = CB.T * B_inv
 
-    def _assign_value(self):
-        pass
-
-    # TODO: assign value to variables
     def solve(self, method="simplex"):
         self._2_standard_form()
         self._2_matrix()
         if method == "simplex":
-            return self._simplex()
+            self._simplex()
+
+        if self.solution and self.optimal_value:
+            self._assign_value()
+            self.status = OPTIMAL
+            return self.status
 
 
 if __name__ == "__main__":

@@ -2,8 +2,9 @@ import numpy as np
 import numpy.linalg as la
 from collections import defaultdict
 
-from solver.DataStructure import *
-from solver.Error import *
+from solver.DataStructure.DataStructure import *
+from solver.DataStructure.DataStructure import Constraint, Variable
+from solver.DataStructure.Error import *
 
 
 class LpSolver(object):
@@ -40,6 +41,9 @@ class LpSolver(object):
         # variable 2 index
         # (variable_name, variable_index) : index
         self.variables_variable2index = dict()
+        # the variables which need to be standardized
+        # {(name, index)}
+        self.standardize_variables_set = set()
 
         # constraints number counter
         self.constraints_index = 0
@@ -93,6 +97,10 @@ class LpSolver(object):
         self.variables_collector[name][index] = var
         self.variables_index2variable[self.variables_index] = (name, index)
         self.variables_variable2index[(name, index)] = self.variables_index
+
+        if lb != 0 or ub != INF:
+            self.standardize_variables_set.add((name, index))
+
         self.variables_index += 1
         return var
 
@@ -115,6 +123,10 @@ class LpSolver(object):
             self.variables_index2variable[self.variables_index] = (name, i)
             self.variables_variable2index[(name, i)] = self.variables_index
             self.variables_index += 1
+
+            if lb != 0 or ub != INF:
+                self.standardize_variables_set.add((name, index))
+
         self.variables_collector[name].update(vars_dict)
         return vars_dict
 
@@ -186,7 +198,7 @@ class LpSolver(object):
             name = default_name
         elif name == default_name:
             raise SolverError(default_name + " is built-in name")
-        elif isinstance(name, str):
+        elif not isinstance(name, str):
             raise SolverError(str(default_type) + " name must be str")
 
         return name
@@ -224,69 +236,138 @@ class LpSolver(object):
             self.objective_type = 1
             self.objective = -self.objective
 
-        ub_dict = defaultdict(dict)
+        ub_dict = defaultdict(dict)  # store ub constraints
+
+        for name, index in self.standardize_variables_set:
+
+            variable = self.variables_collector[name][index]
+
+            if variable.lower_bound == -INF:
+
+                # free variable
+                # -inf <= x <= inf
+                # x = x' - x''
+                # 0 <= x' <= inf
+                # 0 <= x'' <= inf, auxiliary variable
+                # TODO(optimize): use an equation to eliminate free variable
+                if variable.upper_bound == INF:
+                    auxiliary_variable = self.add_variable(
+                        name="free_" + variable.name, index=variable.index
+                    )
+                    variable.standard_lb = 0
+                    variable.standard_ub = INF
+                    variable.auxiliary_variable_name = auxiliary_variable.name
+                    variable.auxiliary_variable_index = auxiliary_variable.index
+                    continue
+
+                # -inf <= x <= c
+                # x' = -x
+                # -c <= x' <= inf
+                else:
+                    variable.standard_lb = -variable.upper_bound
+                    variable.standard_ub = -variable.lower_bound
+                    variable.standard_mul = -1
+
+            # c <= x <= inf/c
+            # x' = x - lb
+            # x' + lb = x
+            # s * c * (x' + lb) = b
+            # s * c * x' = b - s * c * lb
+            # 0 <= x' <= inf/c
+            if variable.standard_lb != 0:
+                variable.standard_add = variable.standard_lb
+                variable.standard_lb = 0
+
+            # 0 <= x <= ub
+            # 0 <= x' <= INF, 0 <= x_s <= INF
+            # add constraint: x' + x_s = ub
+            if variable.standard_ub != INF:
+
+                ub = variable.standard_ub
+                variable.standard_ub = INF
+
+                slack_variable = self.add_variable(name="slack")
+                ub_constraint = variable + slack_variable == ub
+
+                ub_constraint.standard_variable_list = ub_constraint.expression.to_list()
+                ub_constraint.is_standard = True
+
+                ub_dict["ub"][self.constraints_index] = ub_constraint
+                self.constraints_constraint2index[("ub", self.constraints_index)] = self.constraints_index
+                self.constraints_index2constraint[self.constraints_index] = ("ub", self.constraints_index)
+                self.constraints_index += 1
 
         for name in self.constraints_collector.keys():
             for index, constraint in self.constraints_collector[name].items():
 
-                # TODO: refactor
-                # x' = x - lb and x <= ub
-                # var: (name, index, coefficient, lb, ub)
                 for i, var in enumerate(constraint.expression.variables_list):
 
-                    if var[0] == "free":
+                    if (var[0], var[1]) in self.standardize_variables_set:
+                        pass
+
+                    else:
                         continue
 
-                    # temporary variable: tuple ===> list
-                    var = list(var)
-
-                    if var[3] == -INF:
-
-                        # -inf <= x <= inf
-                        # x = x' - x''
-                        if var[4] == INF:
-                            free_variable = self.add_variables(name="free_"+var[0]+str(var[1]), index=[0, 1])
-                            var[2] = 0  # coefficient = 0
-                            constraint.expression += free_variable[0] - free_variable[1]
-
-                        # -inf <= x <= c
-                        # x' = -x
-                        # -c <= x' <= inf
-                        else:
-                            constraint.expression.sign_list[i] *= -1
-                            var[3], var[4] = -var[4], -var[3]
-
-                    # c <= x <= inf/c
-                    # x' = x - lb
-                    # x' + lb = x
-                    # s * c * (x' + lb) = b
-                    # s * c * x' = b - s * c * lb
-                    # 0 <= x' <= inf/c
-                    if var[3] != 0:
-                        constraint.compare_value -= var[3] * var[2] * constraint.expression.sign_list[i]
-                        var[4] = INF if var[4] == INF else var[4] - var[3]
-                        var[3] = 0
-
-                    # 0 <= x <= ub
-                    # 0 <= x' <= INF, 0 <= x_s <= INF
-                    # add constraint: x' + x_s = ub
-                    if var[4] != INF:
-                        slack_variable = self.add_variable(name="slack")
-                        ub_constraint = self.variables_collector[var[0]][var[1]] + slack_variable == var[4]
-
-                        # TODO(optimize): is there better way to format the variable bound in upper bound constraint?
-                        ub_constraint.expression.variables_list[0] = (var[0], var[1], 1, 0, INF)
-                        ub_constraint.standard_variable_list = ub_constraint.expression.to_list()
-                        ub_constraint.is_standard = True
-
-                        ub_dict["ub"][self.constraints_index] = ub_constraint
-                        self.constraints_constraint2index[("ub", self.constraints_index)] = self.constraints_index
-                        self.constraints_index2constraint[self.constraints_index] = ("ub", self.constraints_index)
-                        self.constraints_index += 1
-                        var[4] = INF
-
-                    # update variables' coefficient, lower bound and upper bound in constraint
-                    constraint.expression.variables_list[i] = tuple([var[i] for i in range(5)])
+                # # TODO: refactor
+                # # x' = x - lb and x <= ub
+                # # var: (name, index, coefficient, lb, ub)
+                # for i, var in enumerate(constraint.expression.variables_list):
+                #
+                #     if "free" in var[0]:
+                #         continue
+                #
+                #     # temporary variable: tuple ===> list
+                #     var = list(var)
+                #
+                #     if var[3] == -INF:
+                #
+                #         # -inf <= x <= inf
+                #         # x = x' - x''
+                #         if var[4] == INF:
+                #
+                #             # TODO: refactor
+                #             free_variable = self.add_variables(name="free_" + var[0] + str(var[1]), index=[0, 1])
+                #             var[2] = 0  # coefficient = 0
+                #             constraint.expression += free_variable[0] - free_variable[1]
+                #
+                #         # -inf <= x <= c
+                #         # x' = -x
+                #         # -c <= x' <= inf
+                #         else:
+                #             constraint.expression.sign_list[i] *= -1
+                #             var[3], var[4] = -var[4], -var[3]
+                #
+                #     # c <= x <= inf/c
+                #     # x' = x - lb
+                #     # x' + lb = x
+                #     # s * c * (x' + lb) = b
+                #     # s * c * x' = b - s * c * lb
+                #     # 0 <= x' <= inf/c
+                #     if var[3] != 0:
+                #         constraint.compare_value -= var[3] * var[2] * constraint.expression.sign_list[i]
+                #         var[4] = INF if var[4] == INF else var[4] - var[3]
+                #         var[3] = 0
+                #
+                #     # 0 <= x <= ub
+                #     # 0 <= x' <= INF, 0 <= x_s <= INF
+                #     # add constraint: x' + x_s = ub
+                #     if var[4] != INF:
+                #         slack_variable = self.add_variable(name="slack")
+                #         ub_constraint = self.variables_collector[var[0]][var[1]] + slack_variable == var[4]
+                #
+                #         # TODO(optimize): is there better way to format the variable bound in upper bound constraint?
+                #         ub_constraint.expression.variables_list[0] = (var[0], var[1], 1, 0, INF)
+                #         ub_constraint.standard_variable_list = ub_constraint.expression.to_list()
+                #         ub_constraint.is_standard = True
+                #
+                #         ub_dict["ub"][self.constraints_index] = ub_constraint
+                #         self.constraints_constraint2index[("ub", self.constraints_index)] = self.constraints_index
+                #         self.constraints_index2constraint[self.constraints_index] = ("ub", self.constraints_index)
+                #         self.constraints_index += 1
+                #         var[4] = INF
+                #
+                #     # update variables' coefficient, lower bound and upper bound in constraint
+                #     constraint.expression.variables_list[i] = tuple([var[i] for i in range(5)])
 
                 if constraint.compare_value < 0:
                     constraint.compare_value *= -1
@@ -351,8 +432,8 @@ class LpSolver(object):
 
         for index in range(self.constraints_index):
             constr_name, constr_index = self.constraints_index2constraint[index]
-            constr = self.variables_collector[constr_name][constr_index]
-            constr.dual = self.dual[index]
+            constr = self.constraints_collector[constr_name][constr_index]
+            constr.dual = self.dual[0, index]
 
     # TODO: consider the following cases
     # degeneracy
@@ -412,7 +493,7 @@ class LpSolver(object):
         if method == "simplex":
             self._simplex()
 
-        if self.solution and self.optimal_value:
+        if self.solution is not None and self.optimal_value is not None:
             self._assign_value()
             self.status = OPTIMAL
             return self.status
@@ -499,6 +580,6 @@ if __name__ == "__main__":
     model.set_objective(2 * x[1] + 3 * x[2], obj_type=MAXIMIZE)
     # model._2_standard_form()
     # model._2_matrix()
-    solu, z = model.solve(method="simplex")
-    print(solu)
-    print(z)
+    status = model.solve(method="simplex")
+    print(status)
+    print(model.solution)

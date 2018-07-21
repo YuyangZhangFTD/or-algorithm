@@ -1,7 +1,7 @@
 import numbers
 
-from solver.Constant import *
-from solver.Error import *
+from solver.DataStructure.Constant import *
+from solver.DataStructure.Error import *
 
 
 class Variable(object):
@@ -22,6 +22,14 @@ class Variable(object):
         self.lower_bound = lb
         self.upper_bound = ub
         self.value = None
+
+        # standard variable operator
+        self.standard_mul = 1
+        self.standard_add = 0
+        self.standard_lb = self.lower_bound
+        self.standard_ub = self.upper_bound
+        self.auxiliary_variable_name = None
+        self.auxiliary_variable_index = None
 
     def __add__(self, other):
         if isinstance(other, Variable) or isinstance(other, Expression):
@@ -112,8 +120,8 @@ class Expression(object):
                 variable.name,
                 variable.index,
                 variable.coefficient,
-                variable.lower_bound,
-                variable.upper_bound
+                variable.standard_lb,
+                variable.standard_ub
             ))
             self.sign_list.append(variable.sign)
             variable.clean()
@@ -218,7 +226,7 @@ class Constraint(object):
         self.compare_value = value
         self.dual = None    # dual variable for the constraint
         self.is_standard = False
-        self.standard_variable_list = None
+        self.standard_variable_list = None  # for final standard variables
 
     def to_list(self):
         return [

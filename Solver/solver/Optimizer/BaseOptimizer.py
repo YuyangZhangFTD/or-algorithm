@@ -1,0 +1,2 @@
+class BaseOptimizer(object):
+    pass

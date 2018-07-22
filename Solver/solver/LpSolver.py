@@ -266,7 +266,7 @@ class LpSolver(object):
                 else:
                     variable.standard_lb = -variable.upper_bound
                     variable.standard_ub = -variable.lower_bound
-                    variable.standard_mul = -1
+                    variable.standardize_mul = -1
 
             # c <= x <= inf/c
             # x' = x - lb
@@ -275,7 +275,7 @@ class LpSolver(object):
             # s * c * x' = b - s * c * lb
             # 0 <= x' <= inf/c
             if variable.standard_lb != 0:
-                variable.standard_add = variable.standard_lb
+                variable.standardize_add = variable.standard_lb
                 variable.standard_lb = 0
 
             # 0 <= x <= ub
@@ -298,76 +298,32 @@ class LpSolver(object):
                 self.constraints_index += 1
 
         for name in self.constraints_collector.keys():
+
             for index, constraint in self.constraints_collector[name].items():
+
+                b_update = 0
 
                 for i, var in enumerate(constraint.expression.variables_list):
 
                     if (var[0], var[1]) in self.standardize_variables_set:
-                        pass
+
+                        variable = self.variables_collector[var[0]][var[1]]
+
+                        constraint.expression.variables_list[i] = (
+                            var[0],
+                            var[1],
+                            var[2] * variable.standardize_mul,
+                            variable.standard_lb,
+                            variable.standard_ub
+                        )
+
+                        # coefficient * standardize_mul * standardize_add
+                        b_update += var[2] * variable.standardize_mul * variable.standardize_add
 
                     else:
                         continue
 
-                # # TODO: refactor
-                # # x' = x - lb and x <= ub
-                # # var: (name, index, coefficient, lb, ub)
-                # for i, var in enumerate(constraint.expression.variables_list):
-                #
-                #     if "free" in var[0]:
-                #         continue
-                #
-                #     # temporary variable: tuple ===> list
-                #     var = list(var)
-                #
-                #     if var[3] == -INF:
-                #
-                #         # -inf <= x <= inf
-                #         # x = x' - x''
-                #         if var[4] == INF:
-                #
-                #             # TODO: refactor
-                #             free_variable = self.add_variables(name="free_" + var[0] + str(var[1]), index=[0, 1])
-                #             var[2] = 0  # coefficient = 0
-                #             constraint.expression += free_variable[0] - free_variable[1]
-                #
-                #         # -inf <= x <= c
-                #         # x' = -x
-                #         # -c <= x' <= inf
-                #         else:
-                #             constraint.expression.sign_list[i] *= -1
-                #             var[3], var[4] = -var[4], -var[3]
-                #
-                #     # c <= x <= inf/c
-                #     # x' = x - lb
-                #     # x' + lb = x
-                #     # s * c * (x' + lb) = b
-                #     # s * c * x' = b - s * c * lb
-                #     # 0 <= x' <= inf/c
-                #     if var[3] != 0:
-                #         constraint.compare_value -= var[3] * var[2] * constraint.expression.sign_list[i]
-                #         var[4] = INF if var[4] == INF else var[4] - var[3]
-                #         var[3] = 0
-                #
-                #     # 0 <= x <= ub
-                #     # 0 <= x' <= INF, 0 <= x_s <= INF
-                #     # add constraint: x' + x_s = ub
-                #     if var[4] != INF:
-                #         slack_variable = self.add_variable(name="slack")
-                #         ub_constraint = self.variables_collector[var[0]][var[1]] + slack_variable == var[4]
-                #
-                #         # TODO(optimize): is there better way to format the variable bound in upper bound constraint?
-                #         ub_constraint.expression.variables_list[0] = (var[0], var[1], 1, 0, INF)
-                #         ub_constraint.standard_variable_list = ub_constraint.expression.to_list()
-                #         ub_constraint.is_standard = True
-                #
-                #         ub_dict["ub"][self.constraints_index] = ub_constraint
-                #         self.constraints_constraint2index[("ub", self.constraints_index)] = self.constraints_index
-                #         self.constraints_index2constraint[self.constraints_index] = ("ub", self.constraints_index)
-                #         self.constraints_index += 1
-                #         var[4] = INF
-                #
-                #     # update variables' coefficient, lower bound and upper bound in constraint
-                #     constraint.expression.variables_list[i] = tuple([var[i] for i in range(5)])
+                constraint.compare_value -= b_update
 
                 if constraint.compare_value < 0:
                     constraint.compare_value *= -1

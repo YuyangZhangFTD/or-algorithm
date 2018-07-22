@@ -24,8 +24,8 @@ class Variable(object):
         self.value = None
 
         # standard variable operator
-        self.standard_mul = 1
-        self.standard_add = 0
+        self.standardize_mul = 1
+        self.standardize_add = 0
         self.standard_lb = self.lower_bound
         self.standard_ub = self.upper_bound
         self.auxiliary_variable_name = None

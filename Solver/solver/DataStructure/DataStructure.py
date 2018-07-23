@@ -1,18 +1,18 @@
 import numbers
 
-from solver.DataStructure.Constant import *
-from solver.DataStructure.Error import *
+from .Constant import *
+from .Error import *
 
 
 class Variable(object):
 
     def __init__(self, name=None, index=None, lb=0, ub=INF):
 
-        # if not specified, using "var"+str(solver.variable_index)
-        self.name = name if name and isinstance(name, str) else None
+        if name is None or index is None:
+            raise SolverError("Please specific name and index")
 
-        # if not specified, using solver.variable_index
-        self.index = index if not (index is None) else None
+        self.name = name
+        self.index = index
 
         # False for name or index being specified
         self.auto = True if name or index else False
@@ -234,26 +234,3 @@ class Constraint(object):
             for i, x in enumerate(self.expression.variables_list)
         ]
 
-
-if __name__ == "__main__":
-    a = Variable(name="x", index=(0, 0))
-    b = Variable(name="x", index=(0, 1))
-    c = Variable(name="x", index=(0, 2))
-    d = Variable(name="y", index=3)
-    print(a.coefficient)
-    e = 3 * (3 * a + b * 2) - (5 * c + 6 * d) / 3
-    print(a.coefficient)
-    print(a)
-    print(b.coefficient)
-    print(c.coefficient)
-    print(d.coefficient)
-    print(d)
-    print(isinstance(a + b, Expression))
-    print(isinstance(e, Expression))
-    print(e.variables_list)
-    print(e.sign_list)
-    f = e <= 3
-    print(f.expression)
-    print(f.compare_operator)
-    print(f.compare_value)
-    print(type(-a <= 2))

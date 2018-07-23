@@ -1,10 +1,8 @@
 import numpy as np
-import numpy.linalg as la
 from collections import defaultdict
 
-from solver.DataStructure.DataStructure import *
-from solver.DataStructure.DataStructure import Constraint, Variable
-from solver.DataStructure.Error import *
+from .DataStructure import *
+from .Optimizer.Simplex import Simplex
 
 
 class LpSolver(object):
@@ -70,16 +68,8 @@ class LpSolver(object):
         self.m = None
         self.n = None
 
-        # result
-        self.solution = None
-        self.optimal_value = None
-        self.dual = None
-        self.status = NOT_SOLVED
-
-        # attribute in simplex
-        self.B = None
-        self.B_inv = None
-        self.B_index = None
+        # model
+        self.model = None
 
     def add_variable(self, name=None, index=None, lb=0, ub=INF):
         if lb >= ub:
@@ -92,9 +82,9 @@ class LpSolver(object):
         if (name, index) in self.variables_collector.keys():
             raise SolverError(name + " " + str(index) + " is used before")
 
-        var = Variable(name=name, index=index, lb=lb, ub=ub)
+        variable = Variable(name=name, index=index, lb=lb, ub=ub)
 
-        self.variables_collector[name][index] = var
+        self.variables_collector[name].update({index, variable})
         self.variables_index2variable[self.variables_index] = (name, index)
         self.variables_variable2index[(name, index)] = self.variables_index
 
@@ -102,7 +92,7 @@ class LpSolver(object):
             self.standardize_variables_set.add((name, index))
 
         self.variables_index += 1
-        return var
+        return variable
 
     # TODO(optimize): the input format should be checked
     def add_variables(self, name=None, index=None, lb=0, ub=INF):
@@ -117,9 +107,9 @@ class LpSolver(object):
         vars_dict = dict()
 
         for i in index:
-            var = Variable(name=name, index=i, lb=lb, ub=ub)
+            variable = Variable(name=name, index=i, lb=lb, ub=ub)
 
-            vars_dict[i] = var
+            vars_dict[i] = variable
             self.variables_index2variable[self.variables_index] = (name, i)
             self.variables_variable2index[(name, i)] = self.variables_index
             self.variables_index += 1
@@ -143,7 +133,7 @@ class LpSolver(object):
             # check whether variables exist in model
             if not self._variables_in_model(constraint):
                 raise SolverError("There are some variables not in model")
-            self.constraints_collector[name][index] = constraint
+            self.constraints_collector[name].update({index: constraint})
             self.constraints_constraint2index[(name, index)] = self.constraints_index
             self.constraints_index2constraint[self.constraints_index] = (name, index)
             self.constraints_index += 1
@@ -202,6 +192,15 @@ class LpSolver(object):
             raise SolverError(str(default_type) + " name must be str")
 
         return name
+
+    # overwrite getattribute
+    # get attributes which are in self.model
+    def __getattribute__(self, item):
+        if item not in self.__dict__.keys():
+            try:
+                return self.model.__dict__[item]
+            except KeyError:
+                raise SolverError("LpSolver don't have attribute " + item)
 
     def _variables_in_model(self, expr):
         """
@@ -344,7 +343,6 @@ class LpSolver(object):
                 elif constraint.compare_operator == EQ:
                     pass
                 elif constraint.compare_operator == NE:
-                    # TODO: to be implemented
                     raise SolverNotImplementedError("Not equal operator haven't been implemented")
                 else:
                     raise SolverError("Wrong operator in constraint")
@@ -373,85 +371,28 @@ class LpSolver(object):
                     j = self.variables_variable2index[(v[0], v[1])]
                     self.A[i, j] = v[2]
 
-    # TODO: how to find initial basic feasible solution in other cases
-    def _find_init_basis(self):
-        B_index = list(range(self.n - self.m, self.n))
-        return B_index
-
-    # TODO： refactor
     def _assign_value(self):
 
         for index in range(self.variables_index):
-            var_name, var_index = self.variables_index2variable[index]
-            var = self.variables_collector[var_name][var_index]
-            var.value = self.solution[index]
+            variable_name, variable_index = self.variables_index2variable[index]
+            variable = self.variables_collector[variable_name][variable_index]
+            variable.value = self.solution[index]
 
         for index in range(self.constraints_index):
-            constr_name, constr_index = self.constraints_index2constraint[index]
-            constr = self.constraints_collector[constr_name][constr_index]
-            constr.dual = self.dual[0, index]
-
-    # TODO: consider the following cases
-    # degeneracy
-    # infeasible
-    # infinity
-    def _simplex(self):
-        B_index = self._find_init_basis()
-        A = self.A
-        b = self.b
-        c = self.c
-        m = self.m
-        n = self.n
-
-        while True:
-
-            CB = c[B_index]  # C_B
-            B = A[:, B_index]  # B matrix
-            B_inv = la.inv(B)  # B^{-1}
-            XB = B_inv * b  # X_B
-            z = CB.T * XB  # z
-
-            # optimality computations
-            r = [(i, c[i] - CB.T * B_inv * A[:, i]) for i in range(n) if i not in B_index]
-            enter_index, enter_check = r[0]
-            for i in range(1, len(r)):
-                if enter_check > r[i][1]:
-                    enter_index, enter_check = r[i]
-
-            if enter_check > 0:
-                break
-
-            # Feasibility computations
-            try:
-                theta = XB / (B_inv * A[:, enter_index])
-            except RuntimeWarning:  # inf is legal
-                pass
-
-            out_index = int(np.argmin(np.where(theta > 0, theta, INF)))
-
-            # reindex
-            B_index = [i if i != B_index[out_index] else enter_index for i in B_index]
-
-        solution = np.mat(np.zeros((n, 1)))
-        for i in range(m):
-            solution[B_index[i], 0] = XB[i]
-
-        self.B = B
-        self.B_inv = B_inv
-        self.B_index = B_index
-        self.solution = solution
-        self.optimal_value = z
-        self.dual = CB.T * B_inv
+            constraint_name, constraint_index = self.constraints_index2constraint[index]
+            constraint = self.constraints_collector[constraint_name][constraint_index]
+            constraint.dual = self.dual[0, index]
 
     def solve(self, method="simplex"):
         self._2_standard_form()
         self._2_matrix()
         if method == "simplex":
-            self._simplex()
+            solver = Simplex(self.A, self.b, self.c)
+            solver.solve()
+            self.model = solver
 
         if self.solution is not None and self.optimal_value is not None:
             self._assign_value()
-            self.status = OPTIMAL
             return self.status
 
 

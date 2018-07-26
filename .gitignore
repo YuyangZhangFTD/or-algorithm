@@ -130,3 +130,6 @@ music/input/
 # gurobi
 *.log
 *.mps
+
+# jupyter notebook
+*.ipynb_checkpints/

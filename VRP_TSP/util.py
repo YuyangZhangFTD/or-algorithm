@@ -1,10 +1,14 @@
 import numpy as np
 
-TRANS_COST_1 = 12
-TRANS_COST_2 = 14
+TRANS_COST_1 = 12 / 1000
+TRANS_COST_2 = 14 / 1000
 FIXED_COST_1 = 200
 FIXED_COST_2 = 300
 WAIT_COST_PER_MIN = 24 / 60
+
+
+def route2seq(route):
+    return tuple(route[1:-1])
 
 
 def seq2route(seq):
@@ -58,13 +62,13 @@ def arrange_time(f1, l1, f2, l2, t12, time_len=30):
 
 def calculate_sequence_cost(seq, wait, vehicle_type, ds):
     cost = 0
-    ds_len = ds[0, seq[0]] + ds[seq[-1], 0]
+    ds_len = ds[(0,), (seq[0],)] + ds[(seq[-1],), (0,)]
 
     if len(seq) > 1:
-        node = seq[0]
+        node = (seq[0],)
         for v in seq[1:]:
-            ds_len += ds[node, v]
-            node = v
+            ds_len += ds[node, (v,)]
+            node = (v,)
 
     cost += ds_len * TRANS_COST_2 + FIXED_COST_2 \
         if vehicle_type == 2 \
@@ -74,5 +78,35 @@ def calculate_sequence_cost(seq, wait, vehicle_type, ds):
     return cost, ds_len
 
 
-def check_available():
-    pass
+def num2time(n):
+    return "%02d" % (n // 60 + 8) + ":" + str(n % 60)
+
+
+def save(route_dict, tm, first):
+    csv_head = "trans_code,vehicle_type,dist_seq,distribute_lea_tm," \
+               "distribute_arr_tm,distance,trans_cost,charge_cost," \
+               "wait_cost,fixed_use_cost,total_cost,charge_cnt"
+    with open("output/Result.csv", "w") as w:
+        w.write(csv_head + "\n")
+
+        for i, (seq, info) in enumerate(route_dict.items()):
+            trans_code = "DP%04d" % (i + 1)
+            vehicle_type = str(info[0])
+            dist_seq = ";".join([str(x) for x in seq2route(seq)])
+            distribute_lea_tm = num2time(first[seq] - tm[(0,), seq])
+            distribute_arr_tm = num2time(first[seq] + info[4] + tm[(seq[0], ), (0,)])
+            distance = info[3]
+            charge_cnt = info[7]
+            charge_cost = charge_cnt * 50
+            trans_cost = distance * TRANS_COST_2 if info[0] == 2 else distance * TRANS_COST_1
+            wait_cost = info[5][-1] * WAIT_COST_PER_MIN
+            fixed_use_cost = FIXED_COST_1 if info[0] == 2 else FIXED_COST_2
+            total_cost = trans_cost + charge_cost + wait_cost + fixed_use_cost
+
+            value = trans_code + "," + vehicle_type + "," + \
+                    dist_seq + "," + distribute_lea_tm + "," + \
+                    distribute_arr_tm + "," + "%.2f" % distance + "," + \
+                    "%.2f" % trans_cost + "," + str(charge_cost) + "," + \
+                    "%.2f" % wait_cost + "," + str(fixed_use_cost) + "," + \
+                    "%.2f" % total_cost + "," + str(charge_cnt) + "\n"
+            w.write(value)

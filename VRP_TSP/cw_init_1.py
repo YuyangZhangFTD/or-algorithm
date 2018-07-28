@@ -77,16 +77,12 @@ while True:
     # calculate saving value
     # nid1 and nid2 can be sequence, such as (1,2,3)
     for seq1, seq2 in saving_value_pair_candidate:
-        try:
-            new_route_time_info = util.arrange_time(
-                first[seq1], last[seq1],
-                first[seq2], last[seq2],
-                tm[seq1, seq2]
-            )
-        except KeyError:
-            print(seq1)
-            print(seq2)
-            raise BaseException
+
+        new_route_time_info = util.arrange_time(
+            first[seq1], last[seq1],
+            first[seq2], last[seq2],
+            tm[seq1, seq2]
+        )
 
         wait = new_route_time_info[-1]
 
@@ -101,7 +97,7 @@ while True:
         saving_value_rank_list.append((
             (seq1, seq2),
             seq1 + seq2,
-            new_route_time_info.copy(),  # should we add .copy()?
+            new_route_time_info,  # should we add .copy()?
             ds_len,
             new_cost,
             saving_value
@@ -112,7 +108,7 @@ while True:
     # find optimal sequence pair
     # attention: search top 200 for the optimal saving pair
     for (seq1, seq2), new_seq, new_route_time_info, ds_len, new_cost, saving_value \
-            in saving_value_rank_list[:200]:
+            in saving_value_rank_list:
 
         # calculate total weight and volume
         w = weight[seq1] + weight[seq2]
@@ -132,7 +128,7 @@ while True:
             route_dict.pop(seq2)
             route_dict[new_seq] = [
                 2, w, v, ds_len, time_len,
-                new_route_time_info.copy(),
+                new_route_time_info,
                 charge_cnt, new_cost
             ]
 
@@ -220,7 +216,7 @@ while True:
 
 # optimize with charge node
 charge_nodes = {
-    (nid, )
+    (nid,)
     for nid in range(1001, 1101)
 }
 
@@ -236,24 +232,26 @@ for seq, info in route_dict.items():
         tmp_dis = 220000
         tmp_charge = -1
         for charge in charge_nodes:
-            if ds[(0, ), seq] + ds[seq, charge] + ds[charge, (0, )] < tmp_dis:
+            if ds[(0,), seq] + ds[seq, charge] + ds[charge, (0,)] < tmp_dis:
                 # vehicle_type, weight, volume, distance, time, (es, ls, ef, lf, wait), charge_cnt, cost
-                tmp_dis = ds[(0, ), seq] + ds[seq, charge] + ds[charge, (0, )]
+                tmp_dis = ds[(0,), seq] + ds[seq, charge] + ds[charge, (0,)]
                 tmp_charge = charge
         pop_route.append(seq)
-        update_route[seq+tmp_charge] = [
+        update_route[seq + tmp_charge] = [
             info[0], info[1], info[2],
             tmp_dis, info[4] - tm[seq, (0,)] + tm[seq, tmp_charge] + tm[tmp_charge, (0,)],
-            info[5], 1,
-            info[-1] + 50 + 14 * (ds[seq, tmp_charge] + ds[tmp_charge, (0, )] - ds[seq, (0,)])
+            info[5], 1, util.calculate_sequence_cost(seq, info[5][-1], 2, ds)[0]
         ]
-        first[seq+tmp_charge] = info[5][0]
-        tm[(0, ), seq] = tm[(0, ), seq[:1]]
-        tm[seq, (0, )] = tm[seq[-1:], (0, )]
+        first[seq + tmp_charge] = info[5][0]
+        tm[(0,), seq + tmp_charge] = tm[(0,), seq[:1]]
+        tm[seq + tmp_charge, (0,)] = tm[seq[-1:], (0,)]
 
     # change vehicle type
     elif info[3] < 100000 and info[1] < 2 and info[2] < 12:
-        info[0] = 1
+        update_route[seq] = [
+            1, info[1], info[2], info[3], info[4],
+            info[5], 0, util.calculate_sequence_cost(seq, info[5][-1], 1, ds)[0]
+        ]
 
 for seq in pop_route:
     route_dict.pop(seq)
@@ -264,7 +262,8 @@ cost = 0
 print("=" * 45 + "result" + "=" * 45)
 for seq, v in route_dict.items():
     print(util.seq2route(seq))
-    cost += v[-1]
+    c, d = util.calculate_sequence_cost(seq, 0, 2, ds)
+    cost += c
 
 print("Final cost: " + str(cost))
 

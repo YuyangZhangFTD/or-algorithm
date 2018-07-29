@@ -1,8 +1,13 @@
 import pandas as pd
+import random
+import copy
 
 import util
 from util import SeqDict
 
+
+# ATTENTION
+saving_value_threshold = 10
 
 node = pd.read_csv("input/node.csv")
 seq_candidate = {(x,) for x in node["ID"].values.tolist()}
@@ -58,6 +63,8 @@ route_dict = {
         0,
         # TODO, check whether available, if not, cost = util.M
         ds[(0,), seq] * 2 * 14 / 1000 + 300 + 0 + 0  # dis + fixed + charge + wait
+        if ds[(0,), seq] * 2 <= util.DISTANCE_2
+        else util.M
     ]
     for seq in seq_candidate  # seq == nid here
 }
@@ -93,11 +100,14 @@ route_dict.update({
         ),
         1,
         # dis + fixed + charge + wait
-        (ds[(0,), seq] + ds[seq, (0,)]) * 14 / 1000 + 300 + 50 + 0
+        # (ds[(0,), seq] + ds[seq, (0,)]) * 14 / 1000 + 300 + 50 + 0
+        50  # extra charge cost
     ]
     for seq in charge_seq_candidate
 })
 seq_candidate.update(charge_seq_candidate)
+
+route_dict_copy = copy.deepcopy(route_dict)
 
 # init saving value pair
 saving_value_pair_candidate = dict()
@@ -188,11 +198,21 @@ while True:
         key=lambda x: (-x[1][-1], x[1][-2])  # (-saving_value, new_cost)
     )
 
-    if saving_value_rank_list[0][1][-1] <= 0:
+    # ATTENTION
+    # select_pair = random.randint(0, 5)
+    select_pair = 0
+    try:
+        if saving_value_rank_list[select_pair][1][-1] <= saving_value_threshold:
+            break
+    except IndexError:
+        print(saving_value_rank_list[:select_pair+1])
         break
+    print("current pair")
+    print(saving_value_rank_list[select_pair])
 
-    seq1, seq2 = saving_value_rank_list[0][0]
-    new_seq, new_route_time_info, total_ds, total_tm, new_cost, saving_value = saving_value_rank_list[0][1]
+    seq1, seq2 = saving_value_rank_list[select_pair][0]
+    new_seq, new_route_time_info, total_ds, total_tm, new_cost, saving_value = \
+        saving_value_rank_list[select_pair][1]
     # seq: route_info[...]
     #   0 vehicle_type
     #   1 total_weight
@@ -280,11 +300,12 @@ while True:
     print("vehicle_type, total_weight, total_volume, total_ds, "
           "total_tm, (time_len, es, ls, ef, lf, wait), charge_cnt, cost")
     print(route_dict[new_seq])
+    print("now vehicle numbers: " + str(len(route_dict.keys())))
 
 # delete
 final_route_dict = dict()
 for seq, info in route_dict.items():
-    if len(seq) == 3 and seq[1] > 1000:
+    if len(seq) == 1 and seq[0] > 1000:
         continue
     k, v = util.delete_charge_end(seq, info, ds, tm)
     final_route_dict[k] = v

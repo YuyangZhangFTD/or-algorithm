@@ -48,8 +48,8 @@ def generate_time_info(seq1, seq2, seq1_time_info, seq2_time_info, tm):
 
 def calculate_route_cost(seq, vehicle_type, wait, charge_cnt, ds, tm):
     cost = 0
-    total_ds = ds[(0,), seq[:1]] + ds[seq[-1:], (0,)]
-    total_tm = tm[(0,), seq[:1]] + tm[seq[-1:], (0,)]
+    total_ds = ds[(0,), seq] + ds[seq, (0,)]
+    total_tm = tm[(0,), seq] + tm[seq, (0,)]
     if len(seq) > 1:
         node1 = seq[:1]
         for node2 in seq[1:]:
@@ -122,35 +122,6 @@ def check_merge_available(seq1, seq2, route_info1, route_info2, ds, tm, verbose=
     return True if result == 0 else False
 
 
-def calculate_seq_cost(seq, route_dict, ds, tm):
-    n1 = seq[:1]
-
-    vehicle_type = route_dict[n1][0]
-    total_weight = route_dict[n1][1]
-    total_volume = route_dict[n1][2]
-    total_ds = ds[0, seq] + ds[seq, 0]
-    total_tm = tm[0, seq] + 30 + tm[seq, 0]
-    time_info = route_dict[n1][5]
-    charge_cnt = 0
-    cost = route_dict[n1][7]
-    for n2 in seq[1:]:
-        if n2 > 1000:
-            charge_cnt += 1
-        n2 = (n2, )
-        total_weight += route_dict[n2][1]
-        total_volume += route_dict[n2][2]
-        total_ds += ds[n1, n2]
-        time_info = generate_time_info(n1, n2, time_info, route_dict[n2][5], tm)
-        n1 = n2
-    info = [
-        vehicle_type,
-        total_weight,
-        total_volume,
-        total_ds,
-
-    ]
-
-
 def delete_charge_end(seq, route_info, ds, tm):
     # seq = (n1, n2, ..., n3, c)
     if seq[-1] > 1000:
@@ -163,9 +134,8 @@ def delete_charge_end(seq, route_info, ds, tm):
         else:
             last_seq = new_seq
         if calculate_seq_distance((0,)+last_seq+(0,), ds) <= ds_limit:
-            new_seq = seq[:-1]
             cost, total_ds, total_tm = calculate_route_cost(
-                seq, route_info[0], route_info[5][-1], route_info[6] - 1, ds, tm
+                seq[:-1], route_info[0], route_info[5][-1], route_info[6] - 1, ds, tm
             )
             new_time_info = [
                 route_info[5][0] - tm[seq[-2:-1], seq[-1:]] - 30,
@@ -185,7 +155,7 @@ def delete_charge_end(seq, route_info, ds, tm):
                 route_info[6] - 1,
                 cost
             ]
-            return new_seq, new_route_info
+            return seq[:-1], new_route_info
     return seq, route_info
 
 
@@ -226,6 +196,11 @@ def save_result(route_dict, tm):
             wait_cost = info[5][-1] * WAIT_COST
             fixed_use_cost = FIXED_COST_1 if info[0] == 1 else FIXED_COST_2
             total_cost = trans_cost + charge_cost + wait_cost + fixed_use_cost
+            if total_cost != info[-1]:
+                print("-" * 10)
+                print(seq)
+                print("old cost: " + str(info[-1]))
+                print("total cost: " + str(total_cost))
 
             value = trans_code + "," + vehicle_type + "," + \
                     dist_seq + "," + distribute_lea_tm + "," + \

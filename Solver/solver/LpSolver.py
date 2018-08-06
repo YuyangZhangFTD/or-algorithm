@@ -94,7 +94,7 @@ class LpSolver(object):
         self.variables_index += 1
         return variable
 
-    # TODO(optimize): the input format should be checked
+    # TODO(optimize): the input_A format should be checked
     def add_variables(self, name=None, index=None, lb=0, ub=INF):
         if lb >= ub:
             raise SolverError("lower bound must be less than upper bound")
@@ -141,7 +141,7 @@ class LpSolver(object):
         else:
             raise SolverError(str(type(constraint)) + " can't be added as constraint")
 
-    # TODO(optimize): the input format should be checked
+    # TODO(optimize): the input_A format should be checked
     def add_constraints(self, constraints=None, name=None, index=None):
 
         name = self._name_check(name, default_name="var", default_type=type(Constraint))
@@ -167,7 +167,7 @@ class LpSolver(object):
             self.constraints_collector[name].update(constrs_dict)
             return constrs_dict
         else:
-            raise SolverError("Wrong index input")
+            raise SolverError("Wrong index input_A")
 
     def set_objective(self, obj, obj_type=MINIMIZE):
         if isinstance(obj, Expression):

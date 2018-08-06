@@ -9,7 +9,7 @@ from util import SeqDict
 # ATTENTION
 saving_value_threshold = 10
 
-node = pd.read_csv("input/node.csv")
+node = pd.read_csv("input_A/node.csv")
 seq_candidate = {(x,) for x in node["ID"].values.tolist()}
 
 weight = {
@@ -29,7 +29,7 @@ last = {
     for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
 }
 
-dt = pd.read_csv("input/input_distance-time.txt")
+dt = pd.read_csv("input_A/input_distance-time.txt")
 from_to_node = list(zip(dt["from_node"].values, dt["to_node"].values))
 ds = SeqDict({
     ((k1,), (k2,)): v

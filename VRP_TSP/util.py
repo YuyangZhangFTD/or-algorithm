@@ -106,7 +106,7 @@ def check_merge_available(seq1, seq2, route_info1, route_info2, ds, tm, verbose=
             break
         i1, v1 = i2, v2
     # time limit
-    if route_info1[5][4] + tm[seq1, seq2] >= route_info2[5][2]:
+    if route_info1[5][3] + tm[seq1, seq2] >= route_info2[5][2]:
         result = 5
     if verbose:
         if result == 1:

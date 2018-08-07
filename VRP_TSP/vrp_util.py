@@ -21,15 +21,15 @@ CHARGE_TIME = 30
 class SeqDict(dict):
 
     def __getitem__(self, item):
-        if isinstance(item, tuple):
-            a = item[0] if isinstance(item[0], tuple) else (item[0], )
-            b = item[1] if isinstance(item[1], tuple) else (item[1], )
+
+        if len(item) != 2:
+            return dict.__getitem__(self, item)
+        else:
+            a, b = item
             try:
                 return dict.__getitem__(self, (a[-1:], b[:1]))
             except TypeError:
                 raise BaseException("SeqDict TypeError in: " + str(item))
-        else:
-            raise BaseException("SeqDict's key must be 2-tuple")
 
 
 SeqTuple = namedtuple(

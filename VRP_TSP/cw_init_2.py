@@ -89,7 +89,7 @@ route_dict.update({
         0,
         0,
         ds[(0,), seq] + ds[seq, (0,)],  # 0 -> c -> n -> 0
-        tm[(0,), seq] + tm[seq, (0,)],
+        tm[(0,), seq] + 30 + tm[seq, (0,)],
         (
             30,
             0,

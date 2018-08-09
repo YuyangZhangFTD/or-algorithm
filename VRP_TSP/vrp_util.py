@@ -18,7 +18,7 @@ DISTANCE_2 = 120000
 CHARGE_TIME = 30
 
 
-SeqTuple = namedtuple(
+SeqInfo = namedtuple(
     "Seq",
     [
         "vehicle_type",
@@ -36,16 +36,6 @@ SeqTuple = namedtuple(
         "cost"
     ]
 )
-
-
-class SeqInfo(SeqTuple):
-
-    def __add__(self, other):
-        if isinstance(other, SeqInfo):
-            # TODO
-            pass
-        else:
-            raise BaseException("SeqInfo class can't be added with " + str(other))
 
 
 def merge_seq_arrange_time(seq1, seq2, seq1info, seq2info, tm):
@@ -81,7 +71,7 @@ def violated_reason(violated_code):
         print("over time window limit")
 
 
-def check_merge_seq_available(seq1, seq2, seq1info, seq2info, ds, tm):
+def check_merge_seqs_available(seq1, seq2, seq1info, seq2info, ds, tm):
     if seq1info.vehicle_type != seq2info.vehicle_type:
         return False, 1
     is_type_1 = True if seq1info.vehicle_type == 1 else False
@@ -90,29 +80,69 @@ def check_merge_seq_available(seq1, seq2, seq1info, seq2info, ds, tm):
     if seq1info.weight + seq2info.weight > (WEIGHT_1 if is_type_1 else WEIGHT_2):
         return False, 3
     ds_limit = DISTANCE_1 if is_type_1 else DISTANCE_2
-    if seq1info.total_distance + seq2info.total_distance +\
-            ds[(0,), seq1] + ds[seq2, (0,)] > ds_limit:
+    if seq1info.total_distance + seq2info.total_distance -\
+            ds[seq1, (0,)] - ds[(0,), seq2] + ds[seq1, seq2] \
+            > ds_limit:
         return False, 4
     if seq1info.ef + tm[seq1, seq2] > seq2info.ls:
         return False, 5
     return True, 0
 
 
-def check_seq_available(seq, seq_info, ds, tm, first, last):
-    is_type_1 = True if seq_info.vehicle_type == 1 else False
-    if seq_info.volume > (VOLUME_1 if is_type_1 else VOLUME_2):
+def check_seq_available(seq, info, ds, tm):
+    is_type_1 = True if info.vehicle_type == 1 else False
+    if info.volume > (VOLUME_1 if is_type_1 else VOLUME_2):
         return False, 2
-    if seq_info.weight > (WEIGHT_1 if is_type_1 else WEIGHT_2):
+    if info.weight > (WEIGHT_1 if is_type_1 else WEIGHT_2):
         return False, 3
     ds_limit = DISTANCE_1 if is_type_1 else DISTANCE_2
-    if seq_info.total_distance + ds[(0,), seq] + ds[seq, (0,)] > ds_limit:
+    if info.total_distance + ds[(0,), seq] + ds[seq, (0,)] > ds_limit:
         return False, 4
-    if seq_info.total_time + tm[(0,), seq] + tm[seq, (0,)] > 960 or \
-            seq_info.lf + tm[seq, (0,)] > 960 or \
-            seq_info.ls - tm[(0,), seq] < 0:
+    if info.total_time + tm[(0,), seq] + tm[seq, (0,)] > 960 or \
+            info.lf + tm[seq, (0,)] > 960 or \
+            info.ls - tm[(0,), seq] < 0:
         return False, 5
     return True, 0
 
 
-def merge_seqs(seq1, seq2, tm, first, last):
-    pass
+def calculate_each_cost(distance, vehicle_type, wait, charge_cnt):
+    is_type_1 = True if vehicle_type == 1 else False
+    trans_cost = distance * (TRANS_COST_1 if is_type_1 else TRANS_COST_2)
+    fixed_cost = FIXED_COST_1 if is_type_1 else FIXED_COST_2
+    wait_cost = WAIT_COST * wait
+    charge_cost = charge_cnt * CHARGE_COST
+    return trans_cost, fixed_cost, wait_cost, charge_cost
+
+
+def calculate_info_cost(info):
+    return calculate_each_cost(
+        info.total_distance,
+        info.vehicle_type,
+        info.wait,
+        info.charge_cnt
+    )
+
+
+def merge_seqs(seq1, seq2, seq1info, seq2info, ds, tm, *time_info):
+    seq = seq1 + seq2
+    vehicle_type = seq1info.vehicle_type
+    volume = seq1info.volume + seq2info.volume
+    weight = seq1info.weight + seq2info.weight
+    charge_cnt = seq1info.charge_cnt + seq2info.charge_cnt
+    time_len, es, ls, ef, lf, total_wait = time_info
+    total_time = tm[(0,), seq] + tm[seq, (0,)] + time_len
+    total_distance = ds[(0,), seq] + ds[seq, (0,)]
+    nid1 = seq[:1]
+    for i in range(1, len(seq)):
+        nid2 = seq[i:i+1]
+        total_distance += ds[nid1, nid2]
+        nid1 = nid2
+    info = SeqInfo(
+        vehicle_type, volume, weight,
+        total_distance, total_time,
+        time_len, es, ls, ef, lf, total_wait,
+        charge_cnt, sum(calculate_each_cost(
+            total_distance, vehicle_type, total_wait, charge_cnt
+        ))
+    )
+    return seq, info

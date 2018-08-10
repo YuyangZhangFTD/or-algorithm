@@ -1,18 +1,6 @@
 import pandas as pd
 
-
-class SeqDict(dict):
-
-    def __getitem__(self, item):
-
-        if len(item) != 2:
-            return dict.__getitem__(self, item)
-        else:
-            a, b = item
-            try:
-                return dict.__getitem__(self, (a[-1:], b[:1]))
-            except TypeError:
-                raise BaseException("SeqDict TypeError in: " + str(item))
+from vrp_structure import SeqDict
 
 
 def time_transformer(s):

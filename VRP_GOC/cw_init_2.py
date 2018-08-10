@@ -88,7 +88,7 @@ route_dict.update({
         2,  # default vehicle type 2
         0,
         0,
-        ds[(0,), seq] + ds[seq, (0,)],  # 0 -> c -> n -> 0
+        ds[(0,), seq] + ds[seq, (0,)],  # 0 -> c -> 0
         tm[(0,), seq] + 30 + tm[seq, (0,)],
         (
             30,

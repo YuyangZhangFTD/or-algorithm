@@ -59,19 +59,22 @@ def read_data(number):
     return ds, tm, delivery, pickup, charge
 
 
-def get_node_info(node, is_charge=False):
+def get_node_info(node, is_delivery=False, is_charge=False):
     node_id = {(x,) for x in node["ID"].values.tolist()}
+
+    # delivery node, volume and weight is negative
+    delivery = -1 if is_delivery else 1
 
     if is_charge:
         del node
         return node_id
     else:
         weight = {
-            (k,): v
+            (k,): v * delivery
             for k, v in pd.Series(node["weight"].values, index=node["ID"].values).items()
         }
         volume = {
-            (k,): v
+            (k,): v * delivery
             for k, v in pd.Series(node["volume"].values, index=node["ID"].values).items()
         }
 

@@ -1,9 +1,7 @@
 import pandas as pd
-import random
-import copy
-import util
-from vrp_util import SeqInfo
-from vrp_reader import SeqDict
+
+import vrp_util as util
+from vrp_structure import SeqInfo, SeqDict
 
 
 node = pd.read_csv("input_A/node.csv")

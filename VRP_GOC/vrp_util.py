@@ -138,7 +138,7 @@ def check_merge_seqs_available(seq1, seq2, seq1info, seq2info, ds, tm):
     return True, 0
 
 
-def generate_seq_info(seq, ds, tm, volume, weight):
+def generate_seq_info(seq, ds, tm, volume, weight, first, last):
     """
     generate seq info from seq
     return SeqInfo(vehicle_type, volume, weight, total_distance, total+time,
@@ -148,19 +148,39 @@ def generate_seq_info(seq, ds, tm, volume, weight):
     :param tm:
     :param volume:
     :param weight:
+    :param first:
+    :param last:
     :return:
     """
+    # init volume and weight
     delivery_node = list(filter(lambda x: is_delivery(x), seq))
-    init_volume = sum([volume[(x, )] for x in delivery_node])
-    init_weight = sum([weight[(x, )] for x in delivery_node])
-    distance = 0
+    current_volume = sum([volume[(x, )] for x in delivery_node])
+    current_weight = sum([weight[(x, )] for x in delivery_node])
+    current_distance = 0
+    current_time = 0
 
     node1 = (0,)
+    # TODO: calculate leave and arrive time
+    es = first[seq[:1]] - tm[node1, seq[:1]]
+    ls = last[seq[:1]] - tm[node1, seq[:1]]
     for i in range(len(seq)):
         node2 = seq[i, i+1]
+        current_distance += ds[node1, node2]
+        current_time += tm[node1, node2] + SERVE_TIME
 
-        distance += ds[node1, node2]
+        if is_delivery(node2[0]):
+            current_volume -= volume[node2]
+            current_weight -= weight[node2]
+        elif is_pickup(node2[0]):
+            current_volume += volume[node2]
+            current_weight += weight[node2]
 
+        es = first[node2] - tm[no]
+
+        # assign value iteration
+        node1 = node2
+
+    current_distance += ds[node1, (0,)]     # get back to depot
 
     pass
 

@@ -22,7 +22,6 @@ SeqInfo = namedtuple(
         "volume",
         "weight",
         "total_distance",
-        "total_time",
         "time_len",
         "es",
         "ls",

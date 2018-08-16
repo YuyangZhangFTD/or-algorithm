@@ -56,7 +56,8 @@ def read_data(number):
     pickup = node[node.type == 3]
     charge = node[node.type == 4]
     del node
-    return ds, tm, delivery, pickup, charge
+    return ds, tm, delivery, pickup, charge, \
+        [delivery.size, pickup.size, charge.size]
 
 
 def get_node_info(node, is_charge=False):

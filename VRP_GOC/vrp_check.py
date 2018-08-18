@@ -1,7 +1,6 @@
 from vrp_constant import *
 
 
-# check whether new seq is available, assuming 2 seqs is available
 def check_merge_seqs_available(seq1, seq2, seq1info, seq2info, ds, tm):
     """
     check whether to merge seq1 and seq2 is available
@@ -30,17 +29,6 @@ def check_merge_seqs_available(seq1, seq2, seq1info, seq2info, ds, tm):
     if seq1info.ef + tm[seq1, seq2] > seq2info.ls:
         return False, 5
     return True, 0
-
-
-def check_seq_available(seq, ds, tm):
-    """
-        check whether seq is available without info
-    :param seq:
-    :param ds:
-    :param tm:
-    :return:
-    """
-    pass
 
 
 def check_seq_available_with_info(seq, info, ds, tm):

@@ -3,7 +3,7 @@ from vrp_constant import *
 from vrp_cost import calculate_each_cost
 
 
-def generate_node_type_function(size_list):
+def generate_node_type_judgement(size_list):
     return lambda x: True if 0 < x <= size_list[0] else False, \
         lambda x: True if size_list[0] < x <= size_list[0] + size_list[1] else False, \
         lambda x: True if size_list[0] + size_list[1] < x <= sum(size_list) else False
@@ -39,9 +39,13 @@ def schedule_time(seq1, seq2, seq1info, seq2info, tm):
     return time_len, es, ls, es + time_len, ls + time_len, total_wait
 
 
-def generate_seq_info(seq, ds, tm, volume, weight, first, last, judge_node_type_functions):
+def generate_seq_info(
+        seq, ds, tm, volume, weight, first, last,
+        judge_node_type_functions, vehicle_type=2
+        ):
     """
-    generate seq info from seq
+    generate seq info from seq with checking
+    if seq is not available, return None
     return SeqInfo(vehicle_type, volume, weight, total_distance,
         time_len, es, ls, ef, lf, wait, charge_cnt, cost)
     :param seq:
@@ -52,28 +56,46 @@ def generate_seq_info(seq, ds, tm, volume, weight, first, last, judge_node_type_
     :param first:
     :param last:
     :param judge_node_type_functions:
+    :param vehicle_type:
     :return:
     """
+    if vehicle_type == 1:
+        volume_limit = VOLUME_1
+        weight_limit = WEIGHT_1
+        distance_limit = DISTANCE_1
+    else:
+        volume_limit = VOLUME_2
+        weight_limit = WEIGHT_2
+        distance_limit = DISTANCE_2
     is_delivery, is_pickup, is_charge = judge_node_type_functions
     # init volume and weight
     delivery_node = list(filter(lambda x: is_delivery(x), seq))
-    charge_cnt = sum(filter(lambda x: is_charge(x), seq))
+    # charge_cnt = sum(filter(lambda x: is_charge(x), seq))
     init_volume = sum([volume[(x, )] for x in delivery_node])
     init_weight = sum([weight[(x, )] for x in delivery_node])
 
-    node1 = seq[:1]
-    current_distance = ds[(0,), node1]      # leave depot
-    time_len = SERVE_TIME
-    es = first[node1]
-    ls = last[node1]
+    current_volume = init_volume
+    current_weight = init_weight
+
+    if current_volume > volume_limit or current_weight > weight_limit:
+        return None
+
+    # first node
+    node1 = (0, )
+    current_distance = 0
+    max_volume = init_volume
+    max_weight = init_weight
+    time_len = 0   # serve time is 0 at node 0
+    es = 0
+    ls = 960
     ef = es + time_len
     lf = ls + time_len
     total_wait = 0
-    current_volume = init_volume
-    current_weight = init_weight
     charge_cnt = 0
-    for i in range(1, len(seq)):
-        node2 = seq[i, i+1]
+
+    for i in range(len(seq)):
+        node2 = seq[i: i+1]
+
         current_distance += ds[node1, node2]
 
         if is_delivery(node2[0]):
@@ -82,9 +104,17 @@ def generate_seq_info(seq, ds, tm, volume, weight, first, last, judge_node_type_
         elif is_pickup(node2[0]):
             current_volume += volume[node2]
             current_weight += weight[node2]
+            max_volume = max(max_volume, current_volume)
+            max_weight = max(max_weight, current_weight)
 
         ef += tm[node1, node2]
         lf += tm[node1, node2]
+
+        if current_volume > volume_limit or current_weight > weight_limit or \
+                current_distance > (charge_cnt + 1) * distance_limit or \
+                ef > last[node2]:
+            return None
+
         wait = max(first[node2] - lf, 0)
         if wait == 0:
             es = max(ef, first[node2]) - time_len - tm[node1, node2]
@@ -97,16 +127,23 @@ def generate_seq_info(seq, ds, tm, volume, weight, first, last, judge_node_type_
         ef = es + time_len
         lf = ls + time_len
 
-        # TODO: judge vehicle type and charge_cnt
-
         node1 = node2
 
     current_distance += ds[node1, (0,)]     # get back to depot
+    if es < 0:
+        ls -= es
+        ef -= es
+        lf -= es
+        es = 0
 
-    vehicle_type = 2
+    if max_volume > VOLUME_1 or max_weight > WEIGHT_1 or \
+            current_distance > (charge_cnt + 1) * DISTANCE_1:
+        vehicle_type = 2
+    else:
+        vehicle_type = 1
 
     return SeqInfo(
-        vehicle_type, init_volume, init_weight,
+        vehicle_type, max_volume, max_weight,
         current_distance, time_len,
         es, ls, ef, lf, total_wait,
         charge_cnt, sum(calculate_each_cost(

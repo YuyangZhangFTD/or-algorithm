@@ -62,11 +62,18 @@ def read_data(number):
 
 def get_node_info(node, is_charge=False):
     node_id = {(x,) for x in node["ID"].values.tolist()}
-
+    weight, volume = None, None
     if is_charge:
-        del node
-        return node_id
+        first = {
+            (k,): 0
+            for k, v in pd.Series(node["first"].values, index=node["ID"].values).items()
+        }
+        last = {
+            (k,): 960
+            for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
+        }
     else:
+
         weight = {
             (k,): v
             for k, v in pd.Series(node["weight"].values, index=node["ID"].values).items()
@@ -75,7 +82,6 @@ def get_node_info(node, is_charge=False):
             (k,): v
             for k, v in pd.Series(node["volume"].values, index=node["ID"].values).items()
         }
-
         first = {
             (k,): v
             for k, v in pd.Series(node["first"].values, index=node["ID"].values).items()
@@ -84,5 +90,5 @@ def get_node_info(node, is_charge=False):
             (k,): v
             for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
         }
-        del node
-        return node_id, weight, volume, first, last
+    del node
+    return node_id, volume, weight, first, last

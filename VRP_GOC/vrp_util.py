@@ -3,12 +3,6 @@ from vrp_constant import *
 from vrp_cost import calculate_each_cost
 
 
-def generate_node_type_judgement(size_list):
-    return lambda x: True if 0 < x <= size_list[0] else False, \
-        lambda x: True if size_list[0] < x <= size_list[0] + size_list[1] else False, \
-        lambda x: True if size_list[0] + size_list[1] < x <= sum(size_list) else False
-
-
 def schedule_time(seq1, seq2, seq1info, seq2info, tm):
     """
     schedule time with seq1 and seq2
@@ -41,7 +35,7 @@ def schedule_time(seq1, seq2, seq1info, seq2info, tm):
 
 def generate_seq_info(
         seq, ds, tm, volume, weight, first, last,
-        judge_node_type_functions, vehicle_type=2
+        node_type_judgement, vehicle_type=-1
         ):
     """
     generate seq info from seq with checking
@@ -55,19 +49,20 @@ def generate_seq_info(
     :param weight:
     :param first:
     :param last:
-    :param judge_node_type_functions:
+    :param node_type_judgement:
     :param vehicle_type:
     :return:
     """
-    if vehicle_type == 1:
-        volume_limit = VOLUME_1
-        weight_limit = WEIGHT_1
-        distance_limit = DISTANCE_1
-    else:
+    if vehicle_type == -1 or vehicle_type == 2:
         volume_limit = VOLUME_2
         weight_limit = WEIGHT_2
         distance_limit = DISTANCE_2
-    is_delivery, is_pickup, is_charge = judge_node_type_functions
+    else:
+        volume_limit = VOLUME_1
+        weight_limit = WEIGHT_1
+        distance_limit = DISTANCE_1
+
+    is_delivery, is_pickup, is_charge = node_type_judgement
     # init volume and weight
     delivery_node = list(filter(lambda x: is_delivery(x), seq))
     # charge_cnt = sum(filter(lambda x: is_charge(x), seq))
@@ -106,6 +101,8 @@ def generate_seq_info(
             current_weight += weight[node2]
             max_volume = max(max_volume, current_volume)
             max_weight = max(max_weight, current_weight)
+        elif is_charge(node2[0]):
+            charge_cnt += 1
 
         ef += tm[node1, node2]
         lf += tm[node1, node2]
@@ -136,11 +133,12 @@ def generate_seq_info(
         lf -= es
         es = 0
 
-    if max_volume > VOLUME_1 or max_weight > WEIGHT_1 or \
-            current_distance > (charge_cnt + 1) * DISTANCE_1:
-        vehicle_type = 2
-    else:
-        vehicle_type = 1
+    if vehicle_type == -1:
+        if max_volume > VOLUME_1 or max_weight > WEIGHT_1 or \
+                current_distance > (charge_cnt + 1) * DISTANCE_1:
+            vehicle_type = 2
+        else:
+            vehicle_type = 1
 
     return SeqInfo(
         vehicle_type, max_volume, max_weight,

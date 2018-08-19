@@ -56,14 +56,22 @@ def read_data(number):
     pickup = node[node.type == 3]
     charge = node[node.type == 4]
     del node
+
+    delivery_range = [delivery["ID"].min(), delivery["ID"].max()]
+    pickup_range = [pickup["ID"].min(), pickup["ID"].max()]
+    charge_range = [charge["ID"].min(), charge["ID"].max()]
     return ds, tm, delivery, pickup, charge, \
-        [delivery.size, pickup.size, charge.size]
+        [
+            lambda x: True if delivery_range[0] <= x <= delivery_range[1] else False,
+            lambda x: True if pickup_range[0] <= x <= pickup_range[1] else False,
+            lambda x: True if charge_range[0] <= x <= charge_range[1] else False
+        ]
 
 
 def get_node_info(node, is_charge=False):
     node_id = {(x,) for x in node["ID"].values.tolist()}
-    weight, volume = None, None
     if is_charge:
+        weight, volume = None, None
         first = {
             (k,): 0
             for k, v in pd.Series(node["first"].values, index=node["ID"].values).items()
@@ -73,21 +81,20 @@ def get_node_info(node, is_charge=False):
             for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
         }
     else:
-
         weight = {
-            (k,): v
+            (k,): float(v)
             for k, v in pd.Series(node["weight"].values, index=node["ID"].values).items()
         }
         volume = {
-            (k,): v
+            (k,): float(v)
             for k, v in pd.Series(node["volume"].values, index=node["ID"].values).items()
         }
         first = {
-            (k,): v
+            (k,): int(v)
             for k, v in pd.Series(node["first"].values, index=node["ID"].values).items()
         }
         last = {
-            (k,): v
+            (k,): int(v)
             for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
         }
     del node

@@ -1,19 +1,19 @@
 from vrp_structure import SeqInfo
 from vrp_cost import calculate_each_cost
+from vrp_util import schedule_time
 
 
-def merge_seqs(seq1, seq2, seq1info, seq2info, new_seq_time_info, ds, tm):
+def merge_seqs(seq1, seq2, seq1info, seq2info, ds, tm):
     """
     merge seq1 and seq2 by adding
     without considering whether seq1 or seq2 is available
     return new seq and info
-    :param seq1:
-    :param seq2:
-    :param seq1info:
-    :param seq2info:
-    :param new_seq_time_info:
-    :param ds:
-    :param tm:
+    :param seq1: tuple
+    :param seq2: tuple
+    :param seq1info: SeqInfo
+    :param seq2info: SeqInfo
+    :param ds: dict
+    :param tm: dict
     :return:
     """
     seq = seq1 + seq2
@@ -21,7 +21,7 @@ def merge_seqs(seq1, seq2, seq1info, seq2info, new_seq_time_info, ds, tm):
     volume = seq1info.volume + seq2info.volume
     weight = seq1info.weight + seq2info.weight
     charge_cnt = seq1info.charge_cnt + seq2info.charge_cnt
-    time_len, es, ls, ef, lf, total_wait = new_seq_time_info
+    time_len, es, ls, ef, lf, total_wait = schedule_time(seq1, seq2, seq1info, seq2info, tm)
     total_distance = ds[(0,), seq] + ds[seq, (0,)]
     nid1 = seq[:1]
     for i in range(1, len(seq)):

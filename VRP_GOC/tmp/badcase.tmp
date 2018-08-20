@@ -1,0 +1,5 @@
+(50339, 50845)
+Seq(vehicle_type=2, volume=0.1674, weight=0.0542, total_distance=79817, time_len=136, es=86, ls=134, ef=222, lf=270, wait=0, charge_cnt=0, cost=1417.438)
+(50339, 50845)
+Seq(vehicle_type=2, volume=1.8955000000000002, weight=1.2826799999999998, total_distance=118338, time_len=133, es=0, ls=77, ef=133, lf=210, wait=0, charge_cnt=0, cost=1956.732)
+

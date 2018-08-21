@@ -128,9 +128,9 @@ def generate_seq_info(
 
     current_distance += ds[node1, (0,)]     # get back to depot
     if es < 0:
-        ls -= es
+        # ls -= es
         ef -= es
-        lf -= es
+        # lf -= es
         es = 0
 
     if vehicle_type == -1:

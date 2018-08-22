@@ -33,10 +33,39 @@ def schedule_time(seq1, seq2, seq1info, seq2info, tm):
     return time_len, es, ls, es + time_len, ls + time_len, total_wait
 
 
+def schedule_time_(seq, tm, first, last):
+    node1 = (0,)
+    serve_time = 0
+    shift = 0
+    lps = 960   # latest possible starting
+    for i in range(len(seq)):
+        node2 = seq[i:i + 1]
+
+        # es2 >= lf1
+        if first[node1] + tm[node1, node2] + serve_time > last[node1]:
+            return None
+        else:
+            shift += max(0, lps + tm[node1, node2] + serve_time - last[node2])
+            if shift == 0:
+                lps = last[node2]
+            else:
+                lps += tm[node1, node2] + serve_time
+
+        serve_time = 30
+        node1 = node2
+
+    ls = last[node1] + tm[node1, seq[:1]] + 0 - shift
+    return ls
+
+
+def rearrange_seq(seq, ds, tm, volume, weight, first, last):
+    pass
+
+
 def generate_seq_info(
         seq, ds, tm, volume, weight, first, last,
         node_type_judgement, vehicle_type=-1
-        ):
+):
     """
     generate seq info from seq with checking
     if seq is not available, return None
@@ -66,8 +95,8 @@ def generate_seq_info(
     # init volume and weight
     delivery_node = list(filter(lambda x: is_delivery(x), seq))
     # charge_cnt = sum(filter(lambda x: is_charge(x), seq))
-    init_volume = sum([volume[(x, )] for x in delivery_node])
-    init_weight = sum([weight[(x, )] for x in delivery_node])
+    init_volume = sum([volume[(x,)] for x in delivery_node])
+    init_weight = sum([weight[(x,)] for x in delivery_node])
 
     current_volume = init_volume
     current_weight = init_weight
@@ -76,11 +105,11 @@ def generate_seq_info(
         return None
 
     # first node
-    node1 = (0, )
+    node1 = (0,)
     current_distance = 0
     max_volume = init_volume
     max_weight = init_weight
-    time_len = 0   # serve time is 0 at node 0
+    time_len = 0  # serve time is 0 at node 0
     es = 0
     ls = 960
     ef = es + time_len
@@ -89,7 +118,7 @@ def generate_seq_info(
     charge_cnt = 0
 
     for i in range(len(seq)):
-        node2 = seq[i: i+1]
+        node2 = seq[i: i + 1]
 
         current_distance += ds[node1, node2]
 
@@ -126,11 +155,9 @@ def generate_seq_info(
 
         node1 = node2
 
-    current_distance += ds[node1, (0,)]     # get back to depot
+    current_distance += ds[node1, (0,)]  # get back to depot
     if es < 0:
-        # ls -= es
         ef -= es
-        # lf -= es
         es = 0
 
     if vehicle_type == -1:

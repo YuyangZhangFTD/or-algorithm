@@ -7,7 +7,7 @@ from vrp_check import check_merge_seqs_available
 from vrp_constant import *
 
 data_set_num = 5
-merge_seq_each_time = 20
+merge_seq_each_time = 500
 
 ds, tm, delivery, pickup, charge, node_type_judgement = read_data(data_set_num)
 delivery = get_node_info(delivery)
@@ -25,6 +25,9 @@ first = {**first_d, **first_p, **first_c}
 del first_d, first_p, first_c
 last = {**last_d, **last_p, **last_c}
 del last_d, last_p, last_c
+
+first[(0,)] = 0
+last[(0,)] = 960
 
 seq_candidate = {*node_id_d, *node_id_p}  # type: Set[tuple]
 

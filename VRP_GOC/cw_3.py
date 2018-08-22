@@ -7,7 +7,7 @@ from vrp_check import check_merge_seqs_available
 from vrp_constant import *
 
 data_set_num = 5
-merge_seq_each_time = 500
+merge_seq_each_time = 50
 
 ds, tm, delivery, pickup, charge, node_type_judgement = read_data(data_set_num)
 delivery = get_node_info(delivery)
@@ -34,8 +34,12 @@ seq_candidate = {*node_id_d, *node_id_p}  # type: Set[tuple]
 # init route list
 route_dict = {  # type: dict[tuple, SeqInfo]
     seq: SeqInfo(
-        2, volume[seq], weight[seq], ds[(0,), seq] + ds[seq, (0,)], SERVE_TIME,
-        first[seq], last[seq], first[seq] + SERVE_TIME, last[seq] + SERVE_TIME,
+        2, volume[seq], weight[seq], ds[(0,), seq] + ds[seq, (0,)],
+        tm[(0,), seq] + SERVE_TIME + tm[seq, (0,)],
+        0 if first[seq] - tm[(0,), seq] < 0 else first[seq] - tm[(0,), seq],
+        last[seq] - tm[(0,), seq],
+        first[seq] + SERVE_TIME + tm[seq, (0,)],
+        last[seq] + SERVE_TIME + tm[seq, (0,)],
         0, 0, (ds[(0,), seq] + ds[seq, (0,)]) * TRANS_COST_2 + FIXED_COST_2 if
         ds[(0,), seq] + ds[seq, (0,)] <= DISTANCE_2 else M
     )

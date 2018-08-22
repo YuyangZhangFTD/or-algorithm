@@ -33,6 +33,22 @@ SeqInfo = namedtuple(
     ]
 )
 
+
+SeqInfo_ = namedtuple(
+    "Seq",
+    [
+        "vehicle_type",
+        "volume",
+        "weight",
+        "total_distance",
+        "leave_time"
+        "arrive_time"
+        "wait",
+        "charge_cnt",
+        "cost"
+    ]
+)
+
 RouteInfo = namedtuple(
     "Route",
     [

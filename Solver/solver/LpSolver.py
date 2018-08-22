@@ -1,7 +1,7 @@
 import numpy as np
 from collections import defaultdict
 
-from .DataStructure import *
+from .Structure import *
 from .Optimizer.Simplex import Simplex
 
 

@@ -1,4 +1,4 @@
-from .DataStructure import Variable, Expression, Constraint
+from .Structure import Variable, Expression, Constraint
 from .Constant import *
 from .Error import *
 

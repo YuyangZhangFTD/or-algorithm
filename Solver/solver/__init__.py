@@ -1,6 +1,6 @@
 from .LpSolver import LpSolver
 
-from . import DataStructure
+from . import Structure
 from . import Optimizer
 
 __all__ = [

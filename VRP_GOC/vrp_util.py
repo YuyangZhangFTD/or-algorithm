@@ -36,30 +36,51 @@ def schedule_time(seq1, seq2, seq1info, seq2info, tm):
 def schedule_time_(seq, tm, first, last):
     node1 = (0,)
     serve_time = 0
-    shift = 0
+    eps = 0	# early possible starting 
     lps = 960   # latest possible starting
+    total_wait = 0  	# total wait
+    total_shift = 0	# total shift
     for i in range(len(seq)):
         node2 = seq[i:i + 1]
-
-        # es2 >= lf1
-        if first[node1] + tm[node1, node2] + serve_time > last[node1]:
-            return None
+        
+        shift = max(0, lps + tm[node1, node2] + serve_time - last[node2])
+        
+        # lps = lps_node2
+        if shift > 0:
+            lps = last[node2]
+            total_shift += shift		
         else:
-            shift += max(0, lps + tm[node1, node2] + serve_time - last[node2])
-            if shift == 0:
-                lps = last[node2]
-            else:
-                lps += tm[node1, node2] + serve_time
-
+            lps += tm[node1, node2] + serve_time
+        
+        # check: if lps_node1 < eps_node1, return None 
+        if lps - tm[node1, node2] - serve_time < eps:
+            return None, None, None
+        
+        # update wait and lps_node2
+        wait = max(0, first[node2] - lps)
+        if wait > 0: 
+            total_wait += wait
+            lps = max(first[node2], lps)
+	
+	# eps = eps_node2
+	eps = max(eps + serve_time + tm[node1, node2], first[node2]) 
+        
+        # iter
         serve_time = 30
         node1 = node2
+	
+    leave_time = 960 - total_shift
+    arrive_time = lps + SERVE_TIME + tm[seq[-1:], (0,)]
+    return leave_time, arrive_time, total_wait
 
-    ls = last[node1] + tm[node1, seq[:1]] + 0 - shift
-    return ls
 
-
-def rearrange_seq(seq, ds, tm, volume, weight, first, last):
-    pass
+def rearrange_seq_randomly(seq, ds, tm, volume, weight, first, last):
+    new_seq = list(seq)
+    while True:
+        # TODO: check validation
+        lt, at, tw = schedule_time_(new_seq, tm, first, last)
+        
+    return new_seq
 
 
 def generate_seq_info(

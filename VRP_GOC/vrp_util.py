@@ -1,36 +1,6 @@
-from vrp_structure import SeqInfo, SeqInfo_
+from vrp_structure import SeqInfo
 from vrp_constant import *
 from vrp_cost import calculate_each_cost
-
-
-# def schedule_time(seq1, seq2, seq1info, seq2info, tm):
-#     """
-#     schedule time with seq1 and seq2
-#     return time schedule of new seq
-#     :param seq1:
-#     :param seq2:
-#     :param seq1info:
-#     :param seq2info:
-#     :param tm:
-#     :return: time_len, es, ls, ef, lf, total_wait
-#     """
-#     ef1 = seq1info.ef + tm[seq1, seq2]
-#     lf1 = seq1info.lf + tm[seq1, seq2]
-#     # wait time between 1 and 2 = max{es2 - lf1, 0}
-#     new_wait = max(seq2info.es - lf1, 0)
-#     if new_wait == 0:
-#         # new_seq es = max{ef1, es2} - time_len1 - t12
-#         es = max(ef1, seq2info.es) - seq1info.time_len - tm[seq1, seq2]
-#         # new_seq ls = min{lf1, ls2} - time_len1 -t12
-#         ls = min(lf1, seq2info.ls) - seq1info.time_len - tm[seq1, seq2]
-#     else:
-#         es = seq1info.es
-#         ls = seq1info.es
-#     # new_seq time_len = time_len1 + 30 + t12 + wait + time_len2
-#     time_len = seq1info.time_len + tm[seq1, seq2] + new_wait + seq2info.time_len
-#     # new_seq wait time
-#     total_wait = seq1info.wait + seq2info.wait + new_wait
-#     return time_len, es, ls, es + time_len, ls + time_len, total_wait
 
 
 def schedule_time_(seq, tm, first, last):

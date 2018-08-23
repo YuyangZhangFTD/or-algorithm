@@ -4,10 +4,11 @@ from vrp_reader import read_data, get_node_info
 from vrp_structure import SeqInfo
 from vrp_util import generate_seq_info
 from vrp_check import check_merge_seqs_available
+from vrp_result import save_result
 from vrp_constant import *
 
 data_set_num = 5
-merge_seq_each_time = 50
+merge_seq_each_time = 10
 
 ds, tm, delivery, pickup, charge, node_type_judgement = read_data(data_set_num)
 delivery = get_node_info(delivery)
@@ -164,11 +165,9 @@ while True:
 
 cost = 0
 for k, v in route_dict.items():
-    print("-" * 30)
-    print(k)
-    print(v)
     v_ = generate_seq_info(k, ds, tm, volume, weight, first, last, node_type_judgement)
-    print(v_)
+    route_dict[k] = v_
     cost += v_.cost
 
 print("final cost: " + str(cost))
+save_result(route_dict, data_set_num)

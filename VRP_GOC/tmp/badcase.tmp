@@ -1,4 +1,0 @@
-2018-08-24
-(50429, 50460, 51133, 51017)
-Seq(vehicle_type=2, volume=0.3251, weight=0.16427, total_distance=141295, time_len=551, es=258, ls=12, ef=809, lf=563, wait=246, charge_cnt=1, cost=2426.53)
-Seq(vehicle_type=1, volume=0.3251, weight=0.16427, total_distance=141295, time_len=551, es=258, ls=12, ef=809, lf=563, wait=246, charge_cnt=1, cost=2043.94)

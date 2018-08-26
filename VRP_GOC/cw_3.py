@@ -3,11 +3,11 @@ from typing import *
 from vrp_reader import read_data, get_node_info
 from vrp_structure import SeqInfo
 from vrp_util import generate_seq_info
-from vrp_check import check_merge_seqs_available
+from vrp_check import check_concat_seqs_available
 from vrp_result import save_result
 from vrp_constant import *
 
-data_set_num = 5
+data_set_num = 1
 merge_seq_each_time = 10
 
 ds, tm, delivery, pickup, charge, node_type_judgement = read_data(data_set_num)
@@ -54,7 +54,7 @@ for seq1 in seq_candidate:
         if seq1 == seq2:
             continue
         if (first[seq1], last[seq1]) <= (first[seq2], last[seq2]):
-            is_available, err = check_merge_seqs_available(
+            is_available, err = check_concat_seqs_available(
                 seq1, seq2, route_dict[seq1],
                 route_dict[seq2],
                 ds, tm
@@ -136,7 +136,7 @@ while True:
             if seq1 == seq2:
                 continue
             if (first[seq1], last[seq1]) <= (first[seq2], last[seq2]):
-                is_available, err = check_merge_seqs_available(
+                is_available, err = check_concat_seqs_available(
                     seq1, seq2, route_dict[seq1],
                     route_dict[seq2],
                     ds, tm
@@ -168,6 +168,8 @@ for k, v in route_dict.items():
     v_ = generate_seq_info(k, ds, tm, volume, weight, first, last, node_type_judgement)
     route_dict[k] = v_
     cost += v_.cost
+    print(k)
+    print(v_)
 
 print("final cost: " + str(cost))
 save_result(route_dict, data_set_num)

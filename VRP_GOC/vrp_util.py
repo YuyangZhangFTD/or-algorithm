@@ -15,6 +15,9 @@ def schedule_time(seq, tm, first, last):
     for i in range(len(seq)):
         node2 = seq[i:i + 1]
 
+        if node1 == node2:
+            return None, None, None, None, None, None
+
         shift = max(0, lps + tm[node1, node2] + serve_time - last[node2])
 
         # lps = lps_node2

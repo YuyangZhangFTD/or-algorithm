@@ -12,10 +12,13 @@ def two_opt(seq, info: SeqInfo, iter_num, ds, tm, volume, weight, first, last, n
             for i in range(len(seq) - 1):
                 for j in range(i+1, len(seq)):
                     new_seq = seq[:i] + seq[i:j+1][::-1] + seq[j+1:]
-                    info = generate_seq_info(
-                        new_seq, ds, tm, volume, weight,
-                        first, last, node_type_judgement
-                    )
+                    try:
+                        info = generate_seq_info(
+                            new_seq, ds, tm, volume, weight,
+                            first, last, node_type_judgement
+                        )
+                    except KeyError:
+                        continue
                     if info is None:
                         continue
                     else:

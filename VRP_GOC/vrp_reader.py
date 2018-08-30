@@ -1,6 +1,6 @@
 import pandas as pd
 
-from vrp_structure import SeqDict
+from vrp_model import SeqDict
 
 
 def time_transformer(s):
@@ -30,11 +30,15 @@ def read_data(number):
     from_to_node = list(zip(dt["from_node"].values, dt["to_node"].values))
     ds = SeqDict({
         ((k1,), (k2,)): v
-        for (k1, k2), v in pd.Series(dt["distance"].values, index=from_to_node).items()
+        for (k1, k2), v in pd.Series(
+            dt["distance"].values, index=from_to_node
+        ).items()
     })
     tm = SeqDict({
         ((k1,), (k2,)): v
-        for (k1, k2), v in pd.Series(dt["spend_tm"].values, index=from_to_node).items()
+        for (k1, k2), v in pd.Series(
+            dt["spend_tm"].values, index=from_to_node
+        ).items()
     })
     del dt
 
@@ -49,22 +53,33 @@ def read_data(number):
         "last"
     ]
 
-    node["first"] = node.loc[:, "first"].apply(lambda x: time_transformer(x) if x != "-" else 0)
-    node["last"] = node.loc[:, "last"].apply(lambda x: time_transformer(x) if x != "-" else 960)
+    node["first"] = node.loc[:, "first"].apply(
+        lambda x: time_transformer(x) if x != "-" else 0
+    )
+    node["last"] = node.loc[:, "last"].apply(
+        lambda x: time_transformer(x) if x != "-" else 960
+    )
 
     delivery = node[node.type == 2]
     pickup = node[node.type == 3]
     charge = node[node.type == 4]
+
+    lng_lat = list(zip(node["lng"].values, node["lat"].values))
+    position = pd.Series(lng_lat, index=node["ID"]).to_dict()
+
     del node
 
     delivery_range = [delivery["ID"].min(), delivery["ID"].max()]
     pickup_range = [pickup["ID"].min(), pickup["ID"].max()]
     charge_range = [charge["ID"].min(), charge["ID"].max()]
-    return ds, tm, delivery, pickup, charge, \
+    return ds, tm, delivery, pickup, charge, position, \
         [
-            lambda x: True if delivery_range[0] <= x <= delivery_range[1] else False,
-            lambda x: True if pickup_range[0] <= x <= pickup_range[1] else False,
-            lambda x: True if charge_range[0] <= x <= charge_range[1] else False
+            lambda x:
+                True if delivery_range[0] <= x <= delivery_range[1] else False,
+            lambda x:
+                True if pickup_range[0] <= x <= pickup_range[1] else False,
+            lambda x:
+                True if charge_range[0] <= x <= charge_range[1] else False
         ]
 
 
@@ -74,28 +89,40 @@ def get_node_info(node, is_charge=False):
         weight, volume = None, None
         first = {
             (k,): 0
-            for k, v in pd.Series(node["first"].values, index=node["ID"].values).items()
+            for k, v in pd.Series(
+                node["first"].values, index=node["ID"].values
+            ).items()
         }
         last = {
             (k,): 960
-            for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
+            for k, v in pd.Series(
+                node["last"].values, index=node["ID"].values
+            ).items()
         }
     else:
         weight = {
             (k,): float(v)
-            for k, v in pd.Series(node["weight"].values, index=node["ID"].values).items()
+            for k, v in pd.Series(
+                node["weight"].values, index=node["ID"].values
+            ).items()
         }
         volume = {
             (k,): float(v)
-            for k, v in pd.Series(node["volume"].values, index=node["ID"].values).items()
+            for k, v in pd.Series(
+                node["volume"].values, index=node["ID"].values
+            ).items()
         }
         first = {
             (k,): int(v)
-            for k, v in pd.Series(node["first"].values, index=node["ID"].values).items()
+            for k, v in pd.Series(
+                node["first"].values, index=node["ID"].values
+            ).items()
         }
         last = {
             (k,): int(v)
-            for k, v in pd.Series(node["last"].values, index=node["ID"].values).items()
+            for k, v in pd.Series(
+                node["last"].values, index=node["ID"].values
+            ).items()
         }
     del node
     return node_id, volume, weight, first, last

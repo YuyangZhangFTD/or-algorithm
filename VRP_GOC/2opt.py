@@ -6,7 +6,8 @@ from vrp_improvement import two_opt
 data_set_num = 5
 route_dict = read_result(data_set_num)
 
-ds, tm, delivery, pickup, charge, node_type_judgement = read_data(data_set_num)
+ds, tm, delivery, pickup, charge, position, \
+    node_type_judgement = read_data(data_set_num)
 delivery = get_node_info(delivery)
 pickup = get_node_info(pickup)
 charge = get_node_info(charge, is_charge=True)
@@ -29,8 +30,12 @@ last[(0,)] = 960
 cost = 0
 final_route_dict = dict()
 for seq in route_dict.keys():
-    info = generate_seq_info(seq, ds, tm, volume, weight, first, last, node_type_judgement)
-    new_seq, new_info = two_opt(seq, info, 15, ds, tm, volume, weight, first, last, node_type_judgement)
+    info = generate_seq_info(
+        seq, ds, tm, volume, weight, first, last, node_type_judgement
+    )
+    new_seq, new_info = two_opt(
+        seq, info, 15, ds, tm, volume, weight, first, last, node_type_judgement
+    )
     if seq != new_seq:
         print("-"*20)
         print(seq)

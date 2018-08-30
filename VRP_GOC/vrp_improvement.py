@@ -1,8 +1,11 @@
-from vrp_structure import SeqInfo
+from vrp_model import SeqInfo
 from vrp_util import generate_seq_info
 
 
-def two_opt(seq, info: SeqInfo, iter_num, ds, tm, volume, weight, first, last, node_type_judgement):
+def two_opt(
+    seq, info: SeqInfo, iter_num, ds, tm,
+    volume, weight, first, last, node_type_judgement
+):
     if len(seq) <= 2:
         return seq, info
     else:

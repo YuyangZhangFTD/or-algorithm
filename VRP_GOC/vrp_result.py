@@ -1,4 +1,4 @@
-from vrp_structure import SeqInfo
+from vrp_model import SeqInfo
 from vrp_cost import calculate_each_cost
 
 

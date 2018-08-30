@@ -1,16 +1,17 @@
 from typing import *
 
 from vrp_reader import read_data, get_node_info
-from vrp_structure import SeqInfo
+from vrp_model import SeqInfo
 from vrp_util import generate_seq_info
 from vrp_check import check_concat_seqs_available
 from vrp_result import save_result
 from vrp_constant import *
 
-data_set_num = 1
-merge_seq_each_time = 10
+data_set_num = 5
+merge_seq_each_time = 100
 
-ds, tm, delivery, pickup, charge, node_type_judgement = read_data(data_set_num)
+ds, tm, delivery, pickup, charge, position, \
+    node_type_judgement = read_data(data_set_num)
 delivery = get_node_info(delivery)
 pickup = get_node_info(pickup)
 charge = get_node_info(charge, is_charge=True)
@@ -33,7 +34,7 @@ last[(0,)] = 960
 seq_candidate = {*node_id_d, *node_id_p}  # type: Set[tuple]
 
 # init route list
-route_dict = {  # type: dict[tuple, SeqInfo]
+route_dict = {
     seq: SeqInfo(
         2, volume[seq], weight[seq], ds[(0,), seq] + ds[seq, (0,)],
         tm[(0,), seq] + SERVE_TIME + tm[seq, (0,)],
@@ -61,8 +62,10 @@ for seq1 in seq_candidate:
             )
             if is_available:
                 new_seq = seq1 + seq2
-            elif err == 4:      # add change node and construct a feasible sequence
-                charge_nodes = [(cid, ds[seq1, cid]+ds[cid, seq2]) for cid in node_id_c]
+            elif err == 4:  # add change node and construct a feasible sequence
+                charge_nodes = [
+                    (cid, ds[seq1, cid] + ds[cid, seq2]) for cid in node_id_c
+                ]
                 charge_nodes.sort(key=lambda x: x[-1])
                 new_seq = seq1 + charge_nodes[0][0] + seq2
                 del charge_nodes
@@ -76,22 +79,28 @@ for seq1 in seq_candidate:
                 vehicle_type=2
             )
             if new_info is not None:
-                saving_value_pair_candidate[(seq1, seq2)] = (new_seq, new_info, old_cost - new_info.cost)
+                saving_value_pair_candidate[(seq1, seq2)] = (
+                    new_seq, new_info, old_cost - new_info.cost
+                )
 
 print(len(saving_value_pair_candidate))
 
 while True:
 
     print("*" * 30)
-    print("saving value pair number: " + str(len(saving_value_pair_candidate.keys())))
+    print("saving value pair number: " +
+          str(len(saving_value_pair_candidate.keys())))
     print("route number in the beginning: " + str(len(route_dict.keys())))
     print("candidate number in the beginning: " + str(len(seq_candidate)))
 
     # init saving value rank list
     saving_value_rank_list = []
-    for (seq1, seq2), (new_seq, new_info, saving_value) in saving_value_pair_candidate.items():
+    for (seq1, seq2), (new_seq, new_info, saving_value) \
+            in saving_value_pair_candidate.items():
         if saving_value > 0:
-            saving_value_rank_list.append((seq1, seq2, new_seq, new_info, saving_value))
+            saving_value_rank_list.append(
+                (seq1, seq2, new_seq, new_info, saving_value)
+            )
     del saving_value_pair_candidate
     saving_value_rank_list.sort(key=lambda x: x[-1], reverse=True)
 
@@ -99,7 +108,9 @@ while True:
     merge_route_number = 0
     pop_route_set = set()
     for seq1, seq2, new_seq, new_info, saving_value in saving_value_rank_list:
-        if seq1 not in pop_route_set and seq2 not in pop_route_set and new_info is not None:
+        if seq1 not in pop_route_set \
+                and seq2 not in pop_route_set \
+                and new_info is not None:
 
             if seq1 not in node_id_c:
                 seq_candidate.remove(seq1)
@@ -143,8 +154,11 @@ while True:
                 )
                 if is_available:
                     new_seq = seq1 + seq2
-                elif err == 4:  # add change node and construct a feasible sequence
-                    charge_nodes = [(cid, ds[seq1, cid] + ds[cid, seq2]) for cid in node_id_c]
+                elif err == 4:
+                    charge_nodes = [
+                        (cid, ds[seq1, cid] + ds[cid, seq2])
+                        for cid in node_id_c
+                    ]
                     charge_nodes.sort(key=lambda x: x[-1])
                     new_seq = seq1 + charge_nodes[0][0] + seq2
                     del charge_nodes
@@ -158,14 +172,18 @@ while True:
                     vehicle_type=2
                 )
                 if new_info is not None:
-                    saving_value_pair_candidate[(seq1, seq2)] = (new_seq, new_info, old_cost - new_info.cost)
+                    saving_value_pair_candidate[(seq1, seq2)] = (
+                        new_seq, new_info, old_cost - new_info.cost
+                    )
 
     print("route number in the end: " + str(len(route_dict.keys())))
     print("candidate number in the end: " + str(len(seq_candidate)))
 
 cost = 0
 for k, v in route_dict.items():
-    v_ = generate_seq_info(k, ds, tm, volume, weight, first, last, node_type_judgement)
+    v_ = generate_seq_info(
+        k, ds, tm, volume, weight, first, last, node_type_judgement
+    )
     route_dict[k] = v_
     cost += v_.cost
     print(k)

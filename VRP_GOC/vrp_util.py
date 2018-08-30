@@ -1,13 +1,15 @@
-from vrp_structure import SeqInfo
+from vrp_model import SeqInfo
 from vrp_constant import *
 from vrp_cost import calculate_each_cost
+
+from functools import reduce
 
 
 def schedule_time(seq, tm, first, last):
     node1 = (0,)
     serve_time = 0
-    eps = 0             # early possible starting
-    lps = 960           # latest possible starting
+    eps = 0  # early possible starting
+    lps = 960  # latest possible starting
     total_wait = 0
     total_shift = 0
     total_delta = 0
@@ -48,7 +50,7 @@ def schedule_time(seq, tm, first, last):
         serve_time = SERVE_TIME
         node1 = node2
 
-    time_len += SERVE_TIME + tm[node1, (0,)]    # back to depot
+    time_len += SERVE_TIME + tm[node1, (0,)]  # back to depot
 
     es = 0 + total_delta - total_wait
     ls = 960 - total_shift
@@ -90,8 +92,8 @@ def generate_seq_info(
     max_volume = init_volume
     max_weight = init_weight
     serve_time = 0
-    eps = 0             # early possible starting
-    lps = 960           # latest possible starting
+    eps = 0  # early possible starting
+    lps = 960  # latest possible starting
     total_wait = 0
     total_shift = 0
     total_delta = 0
@@ -134,7 +136,9 @@ def generate_seq_info(
             total_wait += wait
             lps = max(first[node2], lps)
 
-        total_delta += max(0, first[node2] - eps - serve_time - tm[node1, node2])
+        total_delta += max(
+            0, first[node2] - eps - serve_time - tm[node1, node2]
+        )
 
         eps = max(eps + serve_time + tm[node1, node2], first[node2])
         time_len += tm[node1, node2] + serve_time + wait
@@ -171,3 +175,33 @@ def generate_seq_info(
             current_distance, vehicle_type, total_wait, charge_cnt
         ))
     )
+
+
+def calculate_seq_position(seq, position):
+    return reduce(
+        lambda x, y: (x[0] + y[0], x[1] + y[1]),
+        [position[x] for x in seq]
+    )
+
+
+def calculate_distance(seq1, seq2, position_dict):
+    p1 = position_dict[seq1]
+    p2 = position_dict[seq2]
+    return (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
+
+
+def get_neighborhood(route_dict, position, neighborhood_number=10):
+    seq_list = list(route_dict.keys())
+    position_dict = {
+        seq: calculate_seq_position(seq, position)
+        for seq in seq_list
+    }
+    neighborhood_dict = dict()
+    for seq in seq_list:
+        compare_list = [
+            (comp, calculate_distance(seq, comp, position_dict))
+            for comp in seq_list if comp != seq
+        ]
+        compare_list.sort(key=lambda x: x[-1])
+        neighborhood_dict[seq] = compare_list[:neighborhood_number]
+    return neighborhood_dict

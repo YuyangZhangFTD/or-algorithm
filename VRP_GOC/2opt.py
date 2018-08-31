@@ -3,7 +3,7 @@ from vrp_util import generate_seq_info
 from vrp_reader import read_data, get_node_info
 from vrp_improvement import two_opt
 
-data_set_num = 5
+data_set_num = 1
 route_dict = read_result(data_set_num)
 
 ds, tm, delivery, pickup, charge, position, \

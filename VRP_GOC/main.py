@@ -1,17 +1,17 @@
 from vrp_reader import read_data, get_node_info
-from vrp_util import generate_seq_info
 from vrp_result import save_result
-from vrp_construction import merge_saving_value_pairs
+from vrp_construction import saving_value_construct
 from vrp_model import SeqInfo
+from vrp_improvement import two_opt
 from vrp_constant import *
 
-from copy import deepcopy
-
-
+# =========================== parameters ============================
 data_set_num = 5
-merge_seq_each_time = 5
-time_sorted_limit = False   # False for greedy matching
+merge_seq_each_time = 300
+time_sorted_limit = False  # False for greedy matching
+local_reconstruct_times = 1000
 
+# =========================== read data =============================
 ds, tm, delivery, pickup, charge, position, \
     node_type_judgement = read_data(data_set_num)
 delivery = get_node_info(delivery)
@@ -34,7 +34,8 @@ first[(0,)] = 0
 last[(0,)] = 960
 
 candidate_seqs = {*node_id_d, *node_id_p}
-# init route list
+
+# ======================== init route list ==========================
 init_route_dict = {
     seq: SeqInfo(
         2, volume[seq], weight[seq], ds[(0,), seq] + ds[seq, (0,)],
@@ -49,29 +50,23 @@ init_route_dict = {
     for seq in candidate_seqs
 }
 
-route_dict = deepcopy(init_route_dict)
-while True:
-    route_dict, new_seq_count = merge_saving_value_pairs(
-        candidate_seqs, route_dict, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
-        time_sorted_limit=time_sorted_limit,
-        merge_seq_each_time=merge_seq_each_time
-    )
-    # update candidate seqs
-    candidate_seqs = list(route_dict.keys())
-    print("merge_seq_count: " + str(new_seq_count))
-    if new_seq_count < 1:
-        break
+# ============================== vrp ================================
+route_dict = saving_value_construct(
+    candidate_seqs, init_route_dict, ds, tm, volume, weight,
+    first, last, node_type_judgement, node_id_c,
+    time_sorted_limit=time_sorted_limit,
+    merge_seq_each_time=merge_seq_each_time
+)
 
 cost = 0
 for k, v in route_dict.items():
-    v_ = generate_seq_info(
-        k, ds, tm, volume, weight, first, last, node_type_judgement
+    new_seq, new_info = two_opt(
+        k, v, 30, ds, tm, volume, weight, first, last, node_type_judgement
     )
-    route_dict[k] = v_
-    cost += v_.cost
-    print(k)
-    print(v_)
+    cost += new_info.cost
+    print(new_seq)
+    print(new_info)
 
+# ============================== save ===============================
 print("final cost: " + str(cost))
 save_result(route_dict, data_set_num)

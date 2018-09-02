@@ -38,7 +38,7 @@ def save_result(route_dict, num):
             w.write(value)
 
 
-def read_result(data_set_num):
+def read_solution(data_set_num):
     file_name = "solution/Result_" + str(data_set_num) + "_300.csv"
     route_dict = dict()
     with open(file_name) as f:

@@ -190,7 +190,7 @@ def calculate_distance(seq1, seq2, position_dict):
     return (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
 
 
-def get_neighborhood(route_dict, position, neighborhood_number=10):
+def get_neighborhood_dict(route_dict, position, neighborhood_number=10):
     seq_list = list(route_dict.keys())
     position_dict = {
         seq: calculate_seq_position(seq, position)
@@ -203,5 +203,7 @@ def get_neighborhood(route_dict, position, neighborhood_number=10):
             for comp in seq_list if comp != seq
         ]
         compare_list.sort(key=lambda x: x[-1])
-        neighborhood_dict[seq] = compare_list[:neighborhood_number]
+        neighborhood_dict[seq] = [
+            x[0] for x in compare_list[:neighborhood_number]
+        ]
     return neighborhood_dict

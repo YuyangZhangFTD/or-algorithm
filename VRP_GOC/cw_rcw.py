@@ -64,10 +64,53 @@ route_dict = saving_value_construct(
 )
 del candidate_seqs
 
-# TODO: local search
+is_charge = ntj[-1]
+have_updated = False
 neighborhood_dict = get_neighborhood_dict(
     route_dict, position, neighborhood_number=neighborhood_number
 )
+
+for _ in range(local_reconstruct_times):
+    old_cost, new_cost = 0, 0
+    if have_updated:
+        neighborhood_dict = get_neighborhood_dict(
+            route_dict, position, neighborhood_number=neighborhood_number
+        )
+        have_updated = False
+    print("="*100)
+    seq = choice(list(route_dict.keys()))
+    old_cost += route_dict[seq].cost
+    neighborhood = neighborhood_dict[seq]
+    old_cost += sum([route_dict[x].cost for x in neighborhood])
+
+    candidate_seqs = [
+        (x,) for x in
+        seq + reduce(lambda x, y: x + y, neighborhood)
+        if not is_charge(x)
+    ]
+    local_route_dict = {
+        seq: init_route_dict[seq]
+        for seq in candidate_seqs
+    }
+    local_route_dict = saving_value_construct(
+        candidate_seqs, local_route_dict,
+        ds, tm, volume, weight, first, last,
+        ntj, node_id_c,
+        time_sorted_limit=time_sorted_limit,
+        merge_seq_each_time=merge_seq_each_time
+    )
+    new_cost += sum([v.cost for v in local_route_dict.values()])
+    if new_cost < old_cost:
+        route_dict.pop(seq)
+        print(seq)
+        for seq_neighborhood in neighborhood:
+            route_dict.pop(seq_neighborhood)
+            print(seq_neighborhood)
+        print("-" * 10)
+        print("new routes: " + str(len(local_route_dict.keys())))
+        route_dict.update(local_route_dict)
+        have_updated = True
+
 
 cost = 0
 for k, v in route_dict.items():

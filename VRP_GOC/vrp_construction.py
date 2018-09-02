@@ -6,9 +6,9 @@ from copy import deepcopy
 
 
 def generate_saving_value_pair_candidates(
-        candidate_seqs, route_dict, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
-        time_sorted_limit=False
+    candidate_seqs, route_dict, ds, tm, volume, weight,
+    first, last, node_type_judgement, node_id_c,
+    time_sorted_limit=False
 ):
     """
 
@@ -37,7 +37,11 @@ def generate_saving_value_pair_candidates(
             #   else:
             #       continue
             if time_sorted_limit:
-                if not ((first[seq1], last[seq1]) <= (first[seq2], last[seq2])):
+                if not (
+                    (first[seq1],
+                     last[seq1]) <= (
+                        first[seq2],
+                        last[seq2])):
                     continue
 
             is_available, err = check_concat_seqs_available(
@@ -74,10 +78,10 @@ def generate_saving_value_pair_candidates(
 
 
 def merge_saving_value_pairs(
-        candidate_seqs, route_dict, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
-        time_sorted_limit=False,
-        merge_seq_each_time=100
+    candidate_seqs, route_dict, ds, tm, volume, weight,
+    first, last, node_type_judgement, node_id_c,
+    time_sorted_limit=False,
+    merge_seq_each_time=100
 ):
     saving_value_pair_candidate_dict = generate_saving_value_pair_candidates(
         candidate_seqs, route_dict, ds, tm, volume, weight,
@@ -120,10 +124,10 @@ def merge_saving_value_pairs(
 
 
 def saving_value_construct(
-        candidate_seqs, init_route_dict, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
-        time_sorted_limit=False,
-        merge_seq_each_time=100
+    candidate_seqs, init_route_dict, ds, tm, volume, weight,
+    first, last, node_type_judgement, node_id_c,
+    time_sorted_limit=False,
+    merge_seq_each_time=100
 ):
     """
 
@@ -157,9 +161,9 @@ def saving_value_construct(
     return route_dict
 
 
-def greedy_insertion(
-        node, seq, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c
+def best_accept_insertion(
+    node, seq, ds, tm, volume, weight,
+    first, last, node_type_judgement, node_id_c
 ):
     rank_list = []
     node = node if isinstance(node, tuple) else (node,)
@@ -195,10 +199,10 @@ def greedy_insertion(
         return rank_list[0][0], rank_list[0][1]
 
 
-def probability_insertion(
-        node, seq, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
-        probability=0.8
+def probability_accept_insertion(
+    node, seq, ds, tm, volume, weight,
+    first, last, node_type_judgement, node_id_c,
+    probability=0.8
 ):
     node = node if isinstance(node, tuple) else (node,)
     for i in range(len(seq)):

@@ -1,10 +1,10 @@
-from vrp_result import read_result, save_result
+from vrp_result import read_solution, save_result
 from vrp_util import generate_seq_info
 from vrp_reader import read_data, get_node_info
 from vrp_improvement import two_opt
 
 data_set_num = 1
-route_dict = read_result(data_set_num)
+route_dict = read_solution(data_set_num)
 
 ds, tm, delivery, pickup, charge, position, \
     node_type_judgement = read_data(data_set_num)
@@ -47,9 +47,6 @@ for seq in route_dict.keys():
     else:
         final_route_dict[seq] = info
         cost += info.cost
-
-for seq in route_dict.keys():
-    pass
 
 print("final cost: " + str(cost))
 save_result(final_route_dict, data_set_num)

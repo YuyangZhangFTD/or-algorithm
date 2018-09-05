@@ -40,7 +40,8 @@ def schedule_time(seq, tm, first, last):
             lps = max(first[node2], lps)
 
         # eps = eps_node2
-        total_delta += max(0, first[node2] - eps - serve_time - tm[node1, node2])
+        total_delta += max(0,
+                           first[node2] - eps - serve_time - tm[node1, node2])
         eps = max(eps + serve_time + tm[node1, node2], first[node2])
 
         # time_len += tm + serve + wait
@@ -63,14 +64,16 @@ def generate_seq_info(
         seq, ds, tm, volume, weight, first, last,
         node_type_judgement, vehicle_type=-1
 ):
-    if vehicle_type == -1 or vehicle_type == 2:
-        volume_limit = VOLUME_2
-        weight_limit = WEIGHT_2
-        distance_limit = DISTANCE_2
-    else:
+    if vehicle_type == -1 or vehicle_type == 1:
         volume_limit = VOLUME_1
         weight_limit = WEIGHT_1
         distance_limit = DISTANCE_1
+        must_be_type2 = False
+    else:
+        volume_limit = VOLUME_2
+        weight_limit = WEIGHT_2
+        distance_limit = DISTANCE_2
+        must_be_type2 = True
 
     is_delivery, is_pickup, is_charge = node_type_judgement
 
@@ -84,7 +87,13 @@ def generate_seq_info(
     current_weight = init_weight
 
     if current_volume > volume_limit or current_weight > weight_limit:
-        return None
+        if current_volume > VOLUME_2 or current_weight > WEIGHT_2:
+            return None
+        else:
+            must_be_type2 = True
+            volume_limit = VOLUME_2
+            weight_limit = WEIGHT_2
+            distance_limit = DISTANCE_2
 
     # first node
     node1 = (0,)
@@ -115,8 +124,6 @@ def generate_seq_info(
             current_weight += weight[node2]
             max_volume = max(max_volume, current_volume)
             max_weight = max(max_weight, current_weight)
-        elif is_charge(node2[0]):
-            charge_cnt += 1
 
         # time window
         shift = max(0, lps + tm[node1, node2] + serve_time - last[node2])
@@ -129,7 +136,18 @@ def generate_seq_info(
         if current_volume > volume_limit or current_weight > weight_limit or \
                 current_distance > (charge_cnt + 1) * distance_limit or \
                 lps - tm[node1, node2] - serve_time < eps:
-            return None
+            if must_be_type2:
+                return None
+            else:
+                if current_volume > VOLUME_2 or current_weight > WEIGHT_2 or \
+                        current_distance > (charge_cnt + 1) * DISTANCE_2 or \
+                        lps - tm[node1, node2] - serve_time < eps:
+                    return None
+                else:
+                    must_be_type2 = True
+                    volume_limit = VOLUME_2
+                    weight_limit = WEIGHT_2
+                    distance_limit = DISTANCE_2
 
         wait = max(0, first[node2] - lps)
         if wait > 0:
@@ -142,6 +160,9 @@ def generate_seq_info(
 
         eps = max(eps + serve_time + tm[node1, node2], first[node2])
         time_len += tm[node1, node2] + serve_time + wait
+
+        if is_charge(node2[0]):
+            charge_cnt += 1
 
         # iter
         serve_time = 30
@@ -157,11 +178,15 @@ def generate_seq_info(
     lf = ls + time_len
 
     if current_distance > (charge_cnt + 1) * distance_limit or lf > 960:
-        return None
+        if must_be_type2 or current_distance > (charge_cnt + 1) * DISTANCE_2 \
+                or lf > 960:
+            return None
+        else:
+            must_be_type2 = True
 
     # choose vehicle type
     if vehicle_type == -1:
-        if max_volume > VOLUME_1 or max_weight > WEIGHT_1 or \
+        if must_be_type2 or max_volume > VOLUME_1 or max_weight > WEIGHT_1 or \
                 current_distance > (charge_cnt + 1) * DISTANCE_1:
             vehicle_type = 2
         else:

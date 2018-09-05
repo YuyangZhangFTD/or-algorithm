@@ -5,7 +5,7 @@ from vrp_improvement import two_opt, two_opt_star
 
 from random import choice
 
-data_set_num = 5
+data_set_num = 1
 iter_number = 100000
 
 route_dict = read_solution(data_set_num)
@@ -62,24 +62,38 @@ for _ in range(iter_number):
         ntj, iter_num=15
     )
     if new_seq1 != seq and new_seq2 != neighborhood:
+        print("="*30)
         have_updated = True
         i1 = route_dict.pop(seq)
         route_dict[new_seq1] = new_info1
         i2 = route_dict.pop(neighborhood)
         route_dict[new_seq2] = new_info2
+        print(seq)
+        print(i1)
+        print(neighborhood)
+        print(i2)
+        print("---")
+        print(new_seq1)
+        print(new_info1)
+        print(new_seq2)
+        print(new_info2)
+        print("---")
         print("old cost: " + str(i1.cost + i2.cost))
         print("new cost: " + str(new_info1.cost + new_info2.cost))
 
 cost = 0
 for k, v in route_dict.items():
+    print("-"*30)
+    print(k)
+    print(v)
     new_seq, new_info = two_opt(
         k, v, ds, tm, volume, weight, first, last, ntj,
-        iter_num=15
+        iter_num=30
     )
+    print(new_seq)
+    print(new_info)
     final_route_dict[new_seq] = new_info
     cost += new_info.cost
 
 print("-"*20+"\nnew cost: " + str(cost))
 save_result(final_route_dict, data_set_num)
-
-# 283168.37200000003

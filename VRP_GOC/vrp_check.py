@@ -36,7 +36,8 @@ def check_concat_seqs_available(seq1, seq2, seq1info, seq2info, ds, tm):
     return True, 0
 
 
-def check_solution(route_dict, is_charge):
+# TODO
+def check_output(route_dict, is_charge):
     all_nodes = [
         x
         for x in

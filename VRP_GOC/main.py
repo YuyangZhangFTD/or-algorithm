@@ -1,13 +1,10 @@
 from vrp_reader import read_data, get_node_info
 from vrp_result import save_result
 from vrp_construction import saving_value_construct
-from vrp_model import SeqInfo
+from vrp_model import SeqInfo, Param
 from vrp_improvement import two_opt
-from vrp_util import get_neighborhood_dict
+from vrp_neighborhhod import get_neighborhood_dict
 from vrp_constant import *
-
-from random import choice
-from functools import reduce
 
 # =========================== parameters ============================
 data_set_num = 5
@@ -39,6 +36,7 @@ first[(0,)] = 0
 last[(0,)] = 960
 
 candidate_seqs = {*node_id_d, *node_id_p}
+param = Param(ds, tm, volume, weight, first, last, ntj, position)
 
 # ======================== init route list ==========================
 init_route_dict = {
@@ -57,8 +55,7 @@ init_route_dict = {
 
 # ============================== vrp ================================
 route_dict = saving_value_construct(
-    candidate_seqs, init_route_dict, ds, tm, volume, weight,
-    first, last, ntj, node_id_c,
+    candidate_seqs, init_route_dict, param, node_id_c,
     time_sorted_limit=time_sorted_limit,
     merge_seq_each_time=merge_seq_each_time
 )
@@ -71,10 +68,7 @@ neighborhood_dict = get_neighborhood_dict(
 
 cost = 0
 for k, v in route_dict.items():
-    new_seq, new_info = two_opt(
-        k, v, ds, tm, volume, weight, first, last, ntj,
-        iter_num=15
-    )
+    new_seq, new_info = two_opt(k, v, param, iter_num=15)
     cost += new_info.cost
     # print(new_seq)
     # print(new_info)

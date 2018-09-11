@@ -1,30 +1,23 @@
 from vrp_util import generate_seq_info
 from vrp_check import check_concat_seqs_available
+from vrp_constant import *
 
 import random
 from copy import deepcopy
 
 
 def generate_saving_value_pair_candidates(
-    candidate_seqs, route_dict, ds, tm, volume, weight,
-    first, last, node_type_judgement, node_id_c,
-    time_sorted_limit=False
+    candidate_seqs, route_dict, param, node_id_c, time_sorted_limit=False
 ):
     """
-
     :param candidate_seqs: candidate nodes or seqs
     :param route_dict: for saving result
-    :param ds:
-    :param tm:
-    :param volume:
-    :param weight:
-    :param first:
-    :param last:
-    :param node_type_judgement:
+    :param param:
     :param node_id_c:
     :param time_sorted_limit:
     :return:
     """
+    ds, tm, volume, weight, first, last, ntj, position = param
     saving_value_pair_candidate_dict = dict()
     for seq1 in candidate_seqs:
         for seq2 in candidate_seqs:
@@ -65,9 +58,7 @@ def generate_saving_value_pair_candidates(
 
             old_cost = route_dict[seq1].cost + route_dict[seq2].cost
             new_info = generate_seq_info(
-                new_seq, ds, tm, volume, weight,
-                first, last, node_type_judgement,
-                vehicle_type=2
+                new_seq, param, vehicle_type=2
             )
             if new_info is not None:
                 saving_value_pair_candidate_dict[(seq1, seq2)] = (
@@ -78,14 +69,12 @@ def generate_saving_value_pair_candidates(
 
 
 def merge_saving_value_pairs(
-    candidate_seqs, route_dict, ds, tm, volume, weight,
-    first, last, node_type_judgement, node_id_c,
+    candidate_seqs, route_dict, param, node_id_c,
     time_sorted_limit=False,
     merge_seq_each_time=100
 ):
     saving_value_pair_candidate_dict = generate_saving_value_pair_candidates(
-        candidate_seqs, route_dict, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
+        candidate_seqs, route_dict, param, node_id_c,
         time_sorted_limit=time_sorted_limit
     )
     print(len(saving_value_pair_candidate_dict))
@@ -124,8 +113,7 @@ def merge_saving_value_pairs(
 
 
 def saving_value_construct(
-    candidate_seqs, init_route_dict, ds, tm, volume, weight,
-    first, last, node_type_judgement, node_id_c,
+    candidate_seqs, init_route_dict, param, node_id_c,
     time_sorted_limit=False,
     merge_seq_each_time=100
 ):
@@ -133,13 +121,7 @@ def saving_value_construct(
 
     :param candidate_seqs:
     :param init_route_dict:
-    :param ds:
-    :param tm:
-    :param volume:
-    :param weight:
-    :param first:
-    :param last:
-    :param node_type_judgement:
+    :param param:
     :param node_id_c:
     :param time_sorted_limit:
     :param merge_seq_each_time:
@@ -149,8 +131,7 @@ def saving_value_construct(
     candidate_seqs = deepcopy(candidate_seqs)
     while True:
         route_dict, new_seq_count = merge_saving_value_pairs(
-            candidate_seqs, route_dict, ds, tm, volume, weight,
-            first, last, node_type_judgement, node_id_c,
+            candidate_seqs, route_dict, param, node_id_c,
             time_sorted_limit=time_sorted_limit,
             merge_seq_each_time=merge_seq_each_time
         )
@@ -161,76 +142,106 @@ def saving_value_construct(
     return route_dict
 
 
-def best_accept_insertion(
-    node, seq, ds, tm, volume, weight,
-    first, last, node_type_judgement, node_id_c
+def insertion(
+        node, seq, param, node_id_c,
+        best_accept=True,
+        probability=0.8
 ):
-    rank_list = []
+    tmp_cost = M
+    tmp_seq = None
+    tmp_info = None
     node = node if isinstance(node, tuple) else (node,)
     for i in range(len(seq)):
         new_seq = seq[:i] + node + seq[i:]
         new_info = generate_seq_info(
-            new_seq, ds, tm, volume, weight,
-            first, last, node_type_judgement,
-            vehicle_type=2
+            new_seq, param, vehicle_type=2
         )
-        if new_info is not None:
-            rank_list.append((new_seq, new_info, new_info.cost))
-
-        for cid in node_id_c:
-            new_seq_with_charge = seq[:i] + node + cid + seq[i:]
-            new_info_with_charge = generate_seq_info(
-                new_seq, ds, tm, volume, weight,
-                first, last, node_type_judgement,
-                vehicle_type=2
-            )
-            if new_info_with_charge is None:
-                continue
-            else:
-                rank_list.append((
-                    new_seq_with_charge,
-                    new_info_with_charge,
-                    new_info_with_charge.cost
-                ))
-    if len(rank_list) == 0:
-        return None, None
-    else:
-        rank_list.sort(key=lambda x: x[-1])
-        return rank_list[0][0], rank_list[0][1]
-
-
-def probability_accept_insertion(
-    node, seq, ds, tm, volume, weight,
-    first, last, node_type_judgement, node_id_c,
-    probability=0.8
-):
-    node = node if isinstance(node, tuple) else (node,)
-    for i in range(len(seq)):
-        new_seq = seq[:i] + node + seq[i:]
-        new_info = generate_seq_info(
-            new_seq, ds, tm, volume, weight,
-            first, last, node_type_judgement,
-            vehicle_type=2
-        )
-        if new_info is not None and random.random() > probability:
-            return new_seq, new_info
-
         if new_info is None:
             rank_list = []
             for cid in node_id_c:
                 new_seq_with_charge = seq[:i] + node + cid + seq[i:]
                 new_info_with_charge = generate_seq_info(
-                    new_seq, ds, tm, volume, weight,
-                    first, last, node_type_judgement,
-                    vehicle_type=2
+                    new_seq, param, vehicle_type=2
                 )
-                if new_info_with_charge is not None:
+                if new_info_with_charge is None:
+                    continue
+                else:
                     rank_list.append((
                         new_seq_with_charge,
                         new_info_with_charge,
                         new_info_with_charge.cost
                     ))
-            if len(rank_list) > 0:
-                rank_list.sort(key=lambda x: x[-1])
-                if random.random > probability:
-                    return rank_list[0][0], rank_list[0][1]
+            if len(rank_list) == 0:
+                continue
+            else:
+                new_seq, new_info = rank_list[0][:2]
+        if best_accept:
+            if tmp_cost > new_info.cost:
+                tmp_seq, tmp_info = new_seq, new_info
+                tmp_cost = new_info.cost
+        else:
+            if random.random() < probability:
+                return new_seq, new_info
+    return tmp_seq, tmp_info
+
+
+# def best_accept_insertion(node, seq, param, node_id_c):
+#     rank_list = []
+#     node = node if isinstance(node, tuple) else (node,)
+#     for i in range(len(seq)):
+#         new_seq = seq[:i] + node + seq[i:]
+#         new_info = generate_seq_info(
+#             new_seq, param, vehicle_type=2
+#         )
+#         if new_info is not None:
+#             rank_list.append((new_seq, new_info, new_info.cost))
+#
+#         for cid in node_id_c:
+#             new_seq_with_charge = seq[:i] + node + cid + seq[i:]
+#             new_info_with_charge = generate_seq_info(
+#                 new_seq, param, vehicle_type=2
+#             )
+#             if new_info_with_charge is None:
+#                 continue
+#             else:
+#                 rank_list.append((
+#                     new_seq_with_charge,
+#                     new_info_with_charge,
+#                     new_info_with_charge.cost
+#                 ))
+#     if len(rank_list) == 0:
+#         return None, None
+#     else:
+#         rank_list.sort(key=lambda x: x[-1])
+#         return rank_list[0][0], rank_list[0][1]
+#
+#
+# def probability_accept_insertion(
+#     node, seq, param, node_id_c, probability=0.8
+# ):
+#     node = node if isinstance(node, tuple) else (node,)
+#     for i in range(len(seq)):
+#         new_seq = seq[:i] + node + seq[i:]
+#         new_info = generate_seq_info(
+#             new_seq, param, vehicle_type=2
+#         )
+#         if new_info is not None and random.random() > probability:
+#             return new_seq, new_info
+#
+#         if new_info is None:
+#             rank_list = []
+#             for cid in node_id_c:
+#                 new_seq_with_charge = seq[:i] + node + cid + seq[i:]
+#                 new_info_with_charge = generate_seq_info(
+#                     new_seq, param, vehicle_type=2
+#                 )
+#                 if new_info_with_charge is not None:
+#                     rank_list.append((
+#                         new_seq_with_charge,
+#                         new_info_with_charge,
+#                         new_info_with_charge.cost
+#                     ))
+#             if len(rank_list) > 0:
+#                 rank_list.sort(key=lambda x: x[-1])
+#                 if random.random > probability:
+#                     return rank_list[0][0], rank_list[0][1]

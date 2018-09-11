@@ -2,7 +2,7 @@ from vrp_reader import read_data, get_node_info
 from vrp_util import generate_seq_info
 from vrp_result import save_result
 from vrp_construction import merge_saving_value_pairs
-from vrp_model import SeqInfo
+from vrp_model import SeqInfo, Param
 from vrp_constant import *
 
 from copy import deepcopy
@@ -12,8 +12,7 @@ data_set_num = 5
 merge_seq_each_time = 5
 time_sorted_limit = False   # False for greedy matching
 
-ds, tm, delivery, pickup, charge, position, \
-    node_type_judgement = read_data(data_set_num)
+ds, tm, delivery, pickup, charge, position, ntj = read_data(data_set_num)
 delivery = get_node_info(delivery)
 pickup = get_node_info(pickup)
 charge = get_node_info(charge, is_charge=True)
@@ -34,6 +33,8 @@ first[(0,)] = 0
 last[(0,)] = 960
 
 candidate_seqs = {*node_id_d, *node_id_p}
+param = Param(ds, tm, volume, weight, first, last, ntj, position)
+
 # init route list
 init_route_dict = {
     seq: SeqInfo(
@@ -52,8 +53,7 @@ init_route_dict = {
 route_dict = deepcopy(init_route_dict)
 while True:
     route_dict, new_seq_count = merge_saving_value_pairs(
-        candidate_seqs, route_dict, ds, tm, volume, weight,
-        first, last, node_type_judgement, node_id_c,
+        candidate_seqs, route_dict, param , node_id_c,
         time_sorted_limit=time_sorted_limit,
         merge_seq_each_time=merge_seq_each_time
     )
@@ -65,9 +65,7 @@ while True:
 
 cost = 0
 for k, v in route_dict.items():
-    v_ = generate_seq_info(
-        k, ds, tm, volume, weight, first, last, node_type_judgement
-    )
+    v_ = generate_seq_info(k, param)
     route_dict[k] = v_
     cost += v_.cost
     print(k)

@@ -32,3 +32,18 @@ SeqInfo = namedtuple(
         "cost"
     ]
 )
+
+
+Param = namedtuple(
+    "Param",
+    [
+        "ds",
+        "tm",
+        "volume",
+        "weight",
+        "first",
+        "last",
+        "ntj",       # For node_type_judgement
+        "position"
+    ]
+)

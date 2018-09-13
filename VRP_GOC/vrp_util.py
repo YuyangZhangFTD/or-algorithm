@@ -1,12 +1,16 @@
-from vrp_model import SeqInfo
-from vrp_constant import *
+from vrp_model import SeqInfo, Param
 from vrp_cost import calculate_each_cost
+from vrp_constant import *
 
 from itertools import permutations
 import random
 
 
-def generate_seq_info(seq, param, vehicle_type=-1):
+def generate_seq_info(
+        seq: tuple,
+        param: Param,
+        vehicle_type: int = -1
+) -> SeqInfo:
     """
     generate a SeqInfo for a sequence
     :param seq:
@@ -46,8 +50,8 @@ def generate_seq_info(seq, param, vehicle_type=-1):
     max_volume = init_volume
     max_weight = init_weight
     serve_time = 0
-    eps = 0         # early possible starting
-    lps = 960       # latest possible starting
+    eps = 0  # early possible starting
+    lps = 960  # latest possible starting
     total_wait = 0
     total_shift = 0
     total_delta = 0
@@ -146,9 +150,12 @@ def generate_seq_info(seq, param, vehicle_type=-1):
 
 
 def generate_seq_from_nodes(
-        nodes, param, vehicle_type=-1,
-        best_accept=True, probability=0.6
-):
+        nodes: list,
+        param: Param,
+        vehicle_type: int = -1,
+        best_accept: bool = True,
+        probability: float = 0.6
+) -> (tuple, SeqInfo):
     """
     generate best of first seq from a node list
     if best_accept=True, best accept
@@ -166,7 +173,7 @@ def generate_seq_from_nodes(
     best_info = None
     for seq in permutations(nodes):
         info = generate_seq_info(
-            nodes, param, vehicle_type=vehicle_type
+            seq, param, vehicle_type=vehicle_type
         )
         if info is not None:
             if best_accept:
@@ -178,4 +185,3 @@ def generate_seq_from_nodes(
                     return seq, info
     if best_info is not None:
         return best_seq, best_info
-

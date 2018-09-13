@@ -33,7 +33,6 @@ SeqInfo = namedtuple(
     ]
 )
 
-
 Param = namedtuple(
     "Param",
     [
@@ -43,7 +42,7 @@ Param = namedtuple(
         "weight",
         "first",
         "last",
-        "ntj",       # For node_type_judgement
+        "ntj",  # For node_type_judgement
         "position"
     ]
 )

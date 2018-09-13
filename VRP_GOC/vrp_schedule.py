@@ -1,7 +1,11 @@
+from vrp_model import Param
 from vrp_constant import *
 
 
-def schedule_time(seq, param):
+def schedule_time(
+        seq: tuple,
+        param: Param
+)-> (float, float, float, float, float, float):
     """
     schedule a sequence
     :param seq:

@@ -1,4 +1,4 @@
-from vrp_model import SeqInfo
+from vrp_model import SeqInfo, Param
 from vrp_util import generate_seq_info
 from vrp_construction import insertion
 
@@ -6,8 +6,11 @@ import random
 
 
 def two_opt(
-        seq, info: SeqInfo, param, iter_num=15
-):
+        seq: tuple,
+        info: SeqInfo,
+        param: Param,
+        iter_num: int = 15
+) -> (tuple, SeqInfo):
     """
     2-opt (2-exchange, Two-point Move):
         swap the position of two nodes
@@ -88,8 +91,13 @@ def or_opt(
 
 
 def two_opt_star(
-        seq1, info1: SeqInfo, seq2, info2: SeqInfo, param, iter_num=15
-):
+        seq1: tuple,
+        info1: SeqInfo,
+        seq2: tuple,
+        info2: SeqInfo,
+        param: Param,
+        iter_num: int = 15
+) -> ((tuple, SeqInfo), (tuple, SeqInfo)):
     """
     2-opt* (2-opt* exchange, 2-opt move):
         remove two edges from the solution and
@@ -184,14 +192,19 @@ def relocate(
                     if random.random() < probability:
                         return new_seq1, new_info1, new_seq2, new_info2
     if tmp_seq1 is None or tmp_seq2 is None:
-        return None, None, None, None
+        return (None, None), (None, None)
     return tmp_seq1, tmp_info1, tmp_seq2, tmp_info2
 
 
 def cross_exchange(
-        seq1, info1: SeqInfo, seq2, info2: SeqInfo, param,
-        best_accept=True, probability=0.8
-):
+        seq1: tuple,
+        info1: SeqInfo,
+        seq2: tuple,
+        info2: SeqInfo,
+        param: Param,
+        best_accept: bool = True,
+        probability: float = 0.8
+) -> ((tuple, SeqInfo), (tuple, SeqInfo)):
     """
     cross exchange
         first remove two edges (i−1, 􏰉i) and (k, 􏰉k+1) from a first route,
@@ -234,6 +247,6 @@ def cross_exchange(
                         if random.random() < probability:
                             return new_seq1, new_info1, new_seq2, new_info2
     if tmp_seq1 is None or tmp_seq2 is None:
-        return None, None, None, None
+        return (None, None), (None, None)
     else:
-        return tmp_seq1, tmp_info1, tmp_seq2, tmp_info2
+        return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)

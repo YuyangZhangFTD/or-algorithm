@@ -1,14 +1,20 @@
 from vrp_util import generate_seq_info
+from vrp_model import SeqInfo, Param
 from vrp_check import check_concat_seqs_available
 from vrp_constant import *
 
 import random
 from copy import deepcopy
+from typing import Dict, Tuple, Set
 
 
 def generate_saving_value_pair_candidates(
-    candidate_seqs, route_dict, param, node_id_c, time_sorted_limit=False
-):
+        candidate_seqs: Set,
+        route_dict: Dict[Tuple, SeqInfo],
+        param: Param,
+        node_id_c: Set,
+        time_sorted_limit: bool = False
+) -> Dict[Tuple, Tuple]:
     """
     :param candidate_seqs: candidate nodes or seqs
     :param route_dict: for saving result
@@ -31,10 +37,10 @@ def generate_saving_value_pair_candidates(
             #       continue
             if time_sorted_limit:
                 if not (
-                    (first[seq1],
-                     last[seq1]) <= (
-                        first[seq2],
-                        last[seq2])):
+                        (first[seq1],
+                         last[seq1]) <= (
+                                first[seq2],
+                                last[seq2])):
                     continue
 
             is_available, err = check_concat_seqs_available(
@@ -69,10 +75,13 @@ def generate_saving_value_pair_candidates(
 
 
 def merge_saving_value_pairs(
-    candidate_seqs, route_dict, param, node_id_c,
-    time_sorted_limit=False,
-    merge_seq_each_time=100
-):
+        candidate_seqs: Set,
+        route_dict: Dict[Tuple, SeqInfo],
+        param: Param,
+        node_id_c: Set,
+        time_sorted_limit: bool = False,
+        merge_seq_each_time: int = 100
+) -> (Dict[Tuple, SeqInfo], int):
     saving_value_pair_candidate_dict = generate_saving_value_pair_candidates(
         candidate_seqs, route_dict, param, node_id_c,
         time_sorted_limit=time_sorted_limit
@@ -113,10 +122,13 @@ def merge_saving_value_pairs(
 
 
 def saving_value_construct(
-    candidate_seqs, init_route_dict, param, node_id_c,
-    time_sorted_limit=False,
-    merge_seq_each_time=100
-):
+        candidate_seqs: Set,
+        init_route_dict: Dict[Tuple, SeqInfo],
+        param: Param,
+        node_id_c: Set,
+        time_sorted_limit: bool = False,
+        merge_seq_each_time: int = 100
+) -> Dict[Tuple, SeqInfo]:
     """
 
     :param candidate_seqs:
@@ -143,14 +155,17 @@ def saving_value_construct(
 
 
 def insertion(
-        node, seq, param, node_id_c,
-        best_accept=True,
-        probability=0.8
-):
+        node: Tuple,
+        seq: Tuple,
+        param: Param,
+        node_id_c: set,
+        best_accept: bool = True,
+        probability: float = 0.8
+) -> (Tuple, SeqInfo):
     tmp_cost = M
     tmp_seq = None
     tmp_info = None
-    node = node if isinstance(node, tuple) else (node,)
+
     for i in range(len(seq)):
         new_seq = seq[:i] + node + seq[i:]
         new_info = generate_seq_info(
@@ -183,7 +198,6 @@ def insertion(
             if random.random() < probability:
                 return new_seq, new_info
     return tmp_seq, tmp_info
-
 
 # def best_accept_insertion(node, seq, param, node_id_c):
 #     rank_list = []

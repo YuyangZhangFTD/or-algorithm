@@ -3,14 +3,15 @@ from vrp_util import generate_seq_info
 from vrp_construction import insertion
 
 import random
+from typing import Tuple, Set
 
 
 def two_opt(
-        seq: tuple,
+        seq: Tuple,
         info: SeqInfo,
         param: Param,
         iter_num: int = 15
-) -> (tuple, SeqInfo):
+) -> (Tuple, SeqInfo):
     """
     2-opt (2-exchange, Two-point Move):
         swap the position of two nodes
@@ -46,8 +47,11 @@ def two_opt(
 
 
 def or_opt(
-        seq, info: SeqInfo, param, node_id_c
-):
+        seq: Tuple,
+        info: SeqInfo,
+        param: Param,
+        node_id_c: Set
+) -> (Tuple, SeqInfo):
     """
     or-opt operator (or-opt move):
 
@@ -91,13 +95,13 @@ def or_opt(
 
 
 def two_opt_star(
-        seq1: tuple,
+        seq1: Tuple,
         info1: SeqInfo,
-        seq2: tuple,
+        seq2: Tuple,
         info2: SeqInfo,
         param: Param,
         iter_num: int = 15
-) -> ((tuple, SeqInfo), (tuple, SeqInfo)):
+) -> ((Tuple, SeqInfo), (Tuple, SeqInfo)):
     """
     2-opt* (2-opt* exchange, 2-opt move):
         remove two edges from the solution and
@@ -151,9 +155,15 @@ def two_opt_star(
 
 
 def relocate(
-        seq1, info1: SeqInfo, seq2, info2: SeqInfo,
-        param, node_id_c, best_accept=True, probability=0.8
-):
+        seq1: Tuple,
+        info1: SeqInfo,
+        seq2: Tuple,
+        info2: SeqInfo,
+        param: Param,
+        node_id_c: Set,
+        best_accept: bool = True,
+        probability: float = 0.8
+) -> ((Tuple, SeqInfo), (Tuple, SeqInfo)):
     """
     relocate operator (One-point Move):
         move a customer visit from one route to another
@@ -190,25 +200,25 @@ def relocate(
                         tmp_seq2, tmp_info2 = new_seq2, new_info2
                 else:
                     if random.random() < probability:
-                        return new_seq1, new_info1, new_seq2, new_info2
+                        return (new_seq1, new_info1), (new_seq2, new_info2)
     if tmp_seq1 is None or tmp_seq2 is None:
         return (None, None), (None, None)
-    return tmp_seq1, tmp_info1, tmp_seq2, tmp_info2
+    return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
 
 
 def cross_exchange(
-        seq1: tuple,
+        seq1: Tuple,
         info1: SeqInfo,
-        seq2: tuple,
+        seq2: Tuple,
         info2: SeqInfo,
         param: Param,
         best_accept: bool = True,
         probability: float = 0.8
-) -> ((tuple, SeqInfo), (tuple, SeqInfo)):
+) -> ((Tuple, SeqInfo), (Tuple, SeqInfo)):
     """
     cross exchange
         first remove two edges (i−1, 􏰉i) and (k, 􏰉k+1) from a first route,
-        while two edges (j−1􏰉, j), and (l,􏰉 l+1) are removed from a second route.
+        while two edges (j−1􏰉, j), and (l,􏰉 l+1) are removed from second route.
         Then the segments i − k and j − l,
         which may contain an arbitrary number of customers,
         are swapped by introducing the new edges

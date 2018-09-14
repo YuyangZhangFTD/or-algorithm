@@ -1,20 +1,31 @@
+from vrp_model import SeqInfo
+
 from functools import reduce
+from typing import Tuple, Dict, List
 
 
-def calculate_seq_position(seq, position):
+def calculate_seq_position(
+        seq: Tuple, position: Dict[Tuple, Tuple]
+) -> Tuple:
     return reduce(
         lambda x, y: (x[0] + y[0], x[1] + y[1]),
         [position[x] for x in seq]
     )
 
 
-def calculate_distance(seq1, seq2, position_dict):
+def calculate_distance(
+        seq1: Tuple, seq2: Tuple, position_dict: Dict[Tuple, Tuple]
+) -> float:
     p1 = position_dict[seq1]
     p2 = position_dict[seq2]
     return (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
 
 
-def get_neighborhood_dict(route_dict, position, neighborhood_number=10):
+def get_neighborhood_dict(
+        route_dict: Dict[Tuple, SeqInfo],
+        position: Dict[Tuple, Tuple],
+        neighborhood_number: int = 10
+) -> Dict[Tuple, List[Tuple]]:
     """
     get neighborhoods of each route
     :param route_dict:

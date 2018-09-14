@@ -33,6 +33,25 @@ SeqInfo = namedtuple(
     ]
 )
 
+
+Info = namedtuple(
+    "Info",
+    [
+        "vehicle_type",
+        "volume",
+        "weight",
+        "total_distance",
+        "eps_list",
+        "lps_list",
+        "time_len",
+        "wait",
+        "buffer",
+        "charge_index",
+        "cost"
+    ]
+)
+
+
 Param = namedtuple(
     "Param",
     [

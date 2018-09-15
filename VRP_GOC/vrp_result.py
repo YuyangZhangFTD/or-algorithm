@@ -51,7 +51,3 @@ def read_solution(data_set_num):
             route_dict[seq] = None
 
     return route_dict
-
-
-def dump_variable():
-    pass

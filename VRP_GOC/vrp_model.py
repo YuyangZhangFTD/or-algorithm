@@ -16,26 +16,7 @@ class SeqDict(dict):
 
 
 SeqInfo = namedtuple(
-    "Seq",
-    [
-        "vehicle_type",
-        "volume",
-        "weight",
-        "total_distance",
-        "time_len",
-        "es",
-        "ls",
-        "ef",
-        "lf",
-        "wait",
-        "charge_cnt",
-        "cost"
-    ]
-)
-
-
-Info = namedtuple(
-    "Info",
+    "SeqInfo",
     [
         "vehicle_type",
         "volume",

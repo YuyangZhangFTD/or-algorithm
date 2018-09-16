@@ -44,8 +44,7 @@ def two_opt(
             else:
                 if new_info.cost < tmp_cost:
                     if best_accept:
-                        tmp_seq = new_seq
-                        tmp_info = new_info
+                        tmp_seq, tmp_info = new_seq, new_info
                         tmp_cost = new_info.cost
                         continue
                     if better_accept:
@@ -90,7 +89,7 @@ def or_opt(
     tmp_info = None
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
-    if len(seq) <= 2:   # for efficiency
+    if len(seq) <= 2:  # for efficiency
         return None, None
     for sub_seq_len in range(1, len(seq)):
         for i in range(len(seq)):
@@ -110,10 +109,8 @@ def or_opt(
             else:
                 if new_info.cost < tmp_cost:
                     if best_accept:
-                        tmp_seq = new_seq
-                        tmp_info = new_info
+                        tmp_seq, tmp_info = new_seq, new_info
                         tmp_cost = new_info.cost
-                        continue
                     if better_accept:
                         return new_seq, new_info
                 if probability and random.random() < probability:
@@ -177,10 +174,8 @@ def two_opt_star(
                 continue
             if new_info1.cost + new_info2.cost < tmp_cost:
                 if best_accept:
-                    tmp_seq1 = new_seq1
-                    tmp_info1 = new_info1
-                    tmp_seq2 = new_seq2
-                    tmp_info2 = new_info2
+                    tmp_seq1, tmp_info1 = new_seq1, new_info1
+                    tmp_seq2, tmp_info2 = new_seq2, new_info2
                     tmp_cost = new_info1.cost + new_info2.cost
                 if better_accept:
                     return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
@@ -239,7 +234,6 @@ def relocate(
                     if best_accept:
                         tmp_seq1, tmp_info1 = new_seq1, new_info1
                         tmp_seq2, tmp_info2 = new_seq2, new_info2
-                        continue
                     if better_accept:
                         return (new_seq1, new_info1), (new_seq2, new_info2)
                 if probability and random.random() < probability:
@@ -301,7 +295,6 @@ def cross_exchange(
                             if best_accept:
                                 tmp_seq1, tmp_info1 = new_seq1, new_info1
                                 tmp_seq2, tmp_info2 = new_seq2, new_info2
-                                continue
                             if better_accept:
                                 return (new_seq1, new_info1), \
                                        (new_seq2, new_info2)

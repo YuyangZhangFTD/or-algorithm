@@ -29,24 +29,18 @@ def generate_saving_value_pair_candidates(
         for seq2 in candidate_seqs:
             if seq1 == seq2:
                 continue
+            info1, info2 = route_dict[seq1], route_dict[seq2]
 
-            # if time_sorted_limit == True
-            #   if es1, ls1 <= es2, ls2
-            #       then go on
-            #   else:
-            #       continue
             if time_sorted_limit:
                 if not (
-                        (first[seq1],
-                         last[seq1]) <= (
-                                first[seq2],
-                                last[seq2])):
+                    (info1.eps_list[0], info1.lps_list[0]) <=
+                    (info2.eps_list[0], info2.lps_list[0])
+                ):
                     continue
 
+            # TODO
             is_available, err = check_concat_seqs_available(
-                seq1, seq2, route_dict[seq1],
-                route_dict[seq2],
-                ds, tm
+                seq1, seq2, route_dict[seq1], route_dict[seq2],param
             )
 
             if is_available:

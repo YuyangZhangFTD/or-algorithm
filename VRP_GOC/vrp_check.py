@@ -1,38 +1,91 @@
+from vrp_util import calculate_seq_distance
 from vrp_constant import *
 
 from functools import reduce
+from typing import Tuple
+from vrp_model import SeqInfo, Param
 
 
-def check_concat_seqs_available(seq1, seq2, seq1info, seq2info, ds, tm):
+def check_concat_seqs_available(
+        seq1: Tuple[int],
+        info1: SeqInfo,
+        seq2: Tuple,
+        info2: SeqInfo,
+        param: Param
+):
     """
     check whether to merge seq1 and seq2 is available
     without considering whether seq1 or seq2 is available
     return True or False and error code
     :param seq1:
+    :param info1:
     :param seq2:
-    :param seq1info:
-    :param seq2info:
-    :param ds:
-    :param tm:
+    :param info2:
+    :param param:
     :return:
     """
-    if seq1info.vehicle_type != seq2info.vehicle_type:
+    ds, tm, *_ = param
+    if info1.vehicle_type != info2.vehicle_type:
         return False, 1
-    is_type_1 = True if seq1info.vehicle_type == 1 else False
-    if seq1info.volume + seq2info.volume > \
+    is_type_1 = True if info1.vehicle_type == 1 else False
+    if info1.volume + info2.volume > \
             (VOLUME_1 if is_type_1 else VOLUME_2):
         return False, 2
-    if seq1info.weight + seq2info.weight > \
+    if info1.weight + info2.weight > \
             (WEIGHT_1 if is_type_1 else WEIGHT_2):
         return False, 3
+    # TODO:
     ds_limit = DISTANCE_1 if is_type_1 else DISTANCE_2
-    if seq1info.total_distance + seq2info.total_distance - \
+    _, (*_, dist1) = calculate_seq_distance(seq1, param) \
+                    if len(info1.charge_index) > 0 \
+                    else _, (_, info1.total_distance)
+    _, (*_, dist2) = calculate_seq_distance(seq2, param) \
+                    if len(info2.charge_index) > 0 \
+                    else _, (_, info2.total_distance)
+    if info1.total_distance + info2.total_distance - \
             ds[seq1, (0,)] - ds[(0,), seq2] + ds[seq1, seq2] \
-            > ds_limit * (seq1info.charge_cnt + seq2info.charge_cnt + 1):
+            > ds_limit * (info1.charge_cnt + info2.charge_cnt + 1):
         return False, 4
-    if seq1info.ef - tm[seq1, (0,)] + tm[seq1, seq2] > \
-            seq2info.ls + tm[(0,), seq2] + 0:
+    if info1.ef - tm[seq1, (0,)] + tm[seq1, seq2] > \
+            info2.ls + tm[(0,), seq2] + 0:
         return False, 5
+    return True, 0
+
+
+def check_seq_available(
+        seq: Tuple[int],
+        info: SeqInfo,
+        param: Param
+) -> (bool, int):
+    ds, tm, volume, weight, first, last, _, _ = param
+
+    is_type2 = True if info.vehicle_type == 2 else False
+    volume_limit = VOLUME_2 if is_type2 else VOLUME_1
+    weight_limit = WEIGHT_2 if is_type2 else WEIGHT_1
+    distance_limit = DISTANCE_2 if is_type2 else DISTANCE_1
+
+    # volume check
+    if sum((volume[x] for x in ((x,) for x in seq))) > volume_limit:
+        return False, 2
+
+    # weight check
+    if sum((weight[x] for x in ((x,) for x in seq))) > weight_limit:
+        return False, 3
+
+    # distance check
+    _, dist_list = calculate_seq_distance(seq, param)
+    if any(filter(lambda x: x > distance_limit, dist_list)):
+        return False, 4
+
+    # time window check
+    #   1. check eps and lps
+    #   2. check eps <= lps <= ls
+    if not all((
+        x[0] <= x[1] <= last[(x[2],)]
+        for x in zip(info.eps_list, info.lps_list, seq)
+    )):
+        return False, 5
+
     return True, 0
 
 

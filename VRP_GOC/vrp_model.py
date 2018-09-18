@@ -22,16 +22,15 @@ SeqInfo = namedtuple(
         "volume",
         "weight",
         "total_distance",
-        "eps_list",
-        "lps_list",
-        "time_len",
-        "wait",
-        "buffer",
+        "eps_list",  # earliest possible start for every node [0, n1,..., 0]
+        "lps_list",  # latest possible start for every node [0, n1,..., 0]
+        "time_len",  # total time
+        "wait",  # wait time
+        "buffer",  # buffer time
         "charge_index",
         "cost"
     ]
 )
-
 
 Param = namedtuple(
     "Param",

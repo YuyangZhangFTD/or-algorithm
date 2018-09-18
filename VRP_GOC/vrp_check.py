@@ -34,20 +34,13 @@ def check_concat_seqs_available(
     if info1.weight + info2.weight > \
             (WEIGHT_1 if is_type_1 else WEIGHT_2):
         return False, 3
-    # TODO:
+    _, (*_, dist1) = calculate_seq_distance(seq1, param)
+    _, (dist2, *_) = calculate_seq_distance(seq2, param)
     ds_limit = DISTANCE_1 if is_type_1 else DISTANCE_2
-    _, (*_, dist1) = calculate_seq_distance(seq1, param) \
-                    if len(info1.charge_index) > 0 \
-                    else _, (_, info1.total_distance)
-    _, (*_, dist2) = calculate_seq_distance(seq2, param) \
-                    if len(info2.charge_index) > 0 \
-                    else _, (_, info2.total_distance)
-    if info1.total_distance + info2.total_distance - \
-            ds[seq1, (0,)] - ds[(0,), seq2] + ds[seq1, seq2] \
-            > ds_limit * (info1.charge_cnt + info2.charge_cnt + 1):
+    if dist1 + dist2 - ds[seq1, (0,)] - ds[(0,), seq2] + ds[seq1, seq2] \
+            > ds_limit:
         return False, 4
-    if info1.ef - tm[seq1, (0,)] + tm[seq1, seq2] > \
-            info2.ls + tm[(0,), seq2] + 0:
+    if info1.eps_list[-2] + SERVE_TIME + tm[seq1, seq2] > info2.lps_list[1]:
         return False, 5
     return True, 0
 

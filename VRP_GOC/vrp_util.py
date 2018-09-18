@@ -83,7 +83,7 @@ def generate_seq_info(
     max_volume = init_volume
     max_weight = init_weight
     serve_time = 0
-    eps = 0  # early possible starting
+    eps = 0  # earliest possible starting
     lps = 960  # latest possible starting
     total_wait = 0
     total_shift = 0

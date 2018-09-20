@@ -1,6 +1,6 @@
 from vrp_model import SeqInfo, Param
 from vrp_util import generate_seq_info
-from vrp_construction import insertion
+from vrp_insertion import insertion
 
 import random
 from typing import Tuple, Set
@@ -29,28 +29,36 @@ def two_opt(
     """
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
-    tmp_seq = None
+    tmp_seq = seq[:]
     tmp_info = None
     tmp_cost = info.cost
-    for i in range(len(seq) - 1):
-        for j in range(i + 1, len(seq)):
-            new_seq = seq[:i] + seq[i:j + 1][::-1] + seq[j + 1:]
-            try:
-                new_info = generate_seq_info(new_seq, param)
-            except KeyError:
-                continue
-            if new_info is None:
-                continue
-            else:
-                if new_info.cost < tmp_cost:
-                    if best_accept:
-                        tmp_seq, tmp_info = new_seq, new_info
-                        tmp_cost = new_info.cost
-                        continue
-                    if better_accept:
+    have_update = False
+    while True:
+        for i in range(len(tmp_seq) - 1):
+            for j in range(i + 1, len(tmp_seq)):
+                new_seq = tmp_seq[:i] + tmp_seq[i:j + 1][::-1] + tmp_seq[j + 1:]
+                try:
+                    new_info = generate_seq_info(new_seq, param)
+                except KeyError:
+                    continue
+                if new_info is None:
+                    continue
+                else:
+                    if new_info.cost < tmp_cost:
+                        if best_accept:
+                            tmp_seq, tmp_info = new_seq, new_info
+                            tmp_cost = new_info.cost
+                            have_update = True
+                            break
+                        if better_accept:
+                            return new_seq, new_info
+                    if probability and random.random() < probability:
                         return new_seq, new_info
-                if probability and random.random() < probability:
-                    return new_seq, new_info
+            if have_update:
+                break
+        if not have_update:
+            break
+        have_update = False
     if tmp_info is None:
         return None, None
     else:
@@ -85,36 +93,44 @@ def or_opt(
     :return:
     """
     tmp_cost = info.cost
-    tmp_seq = None
+    tmp_seq = seq[:]
     tmp_info = None
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
     if len(seq) <= 2:  # for efficiency
         return None, None
-    for sub_seq_len in range(1, len(seq)):
-        for i in range(len(seq)):
-            if i + sub_seq_len > len(seq):
-                continue
-            sub_seq = seq[i:i + sub_seq_len]
-            main_seq = seq[:i] + seq[i + sub_seq_len:]
-            try:
-                new_seq, new_info = insertion(
-                    sub_seq, main_seq, param, node_id_c,
-                    best_accept=True
-                )
-            except KeyError:
-                continue
-            if new_info is None:
-                continue
-            else:
-                if new_info.cost < tmp_cost:
-                    if best_accept:
-                        tmp_seq, tmp_info = new_seq, new_info
-                        tmp_cost = new_info.cost
-                    if better_accept:
+    have_update = False
+    while True:
+        for sub_seq_len in range(1, len(seq)):
+            for i in range(len(seq)):
+                if i + sub_seq_len > len(seq):
+                    continue
+                sub_seq = tmp_seq[i:i + sub_seq_len]
+                main_seq = tmp_seq[:i] + tmp_seq[i + sub_seq_len:]
+                try:
+                    new_seq, new_info = insertion(
+                        sub_seq, main_seq, param, node_id_c, best_accept=True
+                    )
+                except KeyError:
+                    continue
+                if new_info is None:
+                    continue
+                else:
+                    if new_info.cost < tmp_cost:
+                        if best_accept:
+                            tmp_seq, tmp_info = new_seq, new_info
+                            tmp_cost = new_info.cost
+                            have_update = True
+                            break
+                        if better_accept:
+                            return new_seq, new_info
+                    if probability and random.random() < probability:
                         return new_seq, new_info
-                if probability and random.random() < probability:
-                    return new_seq, new_info
+            if have_update:
+                break
+        if not have_update:
+            break
+        have_update = False
     if tmp_info is None:
         return None, None
     else:
@@ -152,36 +168,48 @@ def two_opt_star(
     tmp_cost = info1.cost + info2.cost
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
-    tmp_seq1 = None
+    tmp_seq1 = seq1[:]
     tmp_info1 = None
-    tmp_seq2 = None
+    tmp_seq2 = seq2[:]
     tmp_info2 = None
-    for i in range(1, len(seq1) - 1):
-        for j in range(1, len(seq2) - 1):
-            new_seq1 = seq1[:i] + seq2[j:]
-            try:
-                new_info1 = generate_seq_info(new_seq1, param)
-            except KeyError:
-                continue
-            if new_info1 is None:
-                continue
-            new_seq2 = seq2[:j] + seq1[i:]
-            try:
-                new_info2 = generate_seq_info(new_seq2, param)
-            except KeyError:
-                continue
-            if new_info2 is None:
-                continue
-            if new_info1.cost + new_info2.cost < tmp_cost:
-                if best_accept:
-                    tmp_seq1, tmp_info1 = new_seq1, new_info1
-                    tmp_seq2, tmp_info2 = new_seq2, new_info2
-                    tmp_cost = new_info1.cost + new_info2.cost
-                if better_accept:
+    have_update = False
+    while True:
+        for i in range(1, len(tmp_seq1) - 1):
+            for j in range(1, len(tmp_seq2) - 1):
+                new_seq1 = tmp_seq1[:i] + tmp_seq2[j:]
+                try:
+                    new_info1 = generate_seq_info(new_seq1, param)
+                except KeyError:
+                    continue
+                if new_info1 is None:
+                    continue
+                new_seq2 = tmp_seq2[:j] + tmp_seq1[i:]
+                try:
+                    new_info2 = generate_seq_info(new_seq2, param)
+                except KeyError:
+                    continue
+                if new_info2 is None:
+                    continue
+                if new_info1.cost + new_info2.cost < tmp_cost:
+                    if best_accept:
+                        tmp_seq1, tmp_info1 = new_seq1, new_info1
+                        tmp_seq2, tmp_info2 = new_seq2, new_info2
+                        tmp_cost = new_info1.cost + new_info2.cost
+                        have_update = True
+                        break
+                    if better_accept:
+                        return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
+                if probability and random.random() < probability:
                     return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
-            if probability and random.random() < probability:
-                return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
-    return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
+            if have_update:
+                break
+        if not have_update:
+            break
+        have_update = False
+    if tmp_info1 is None or tmp_info2 is None:
+        return (None, None), (None, None)
+    else:
+        return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
 
 
 def relocate(
@@ -225,7 +253,7 @@ def relocate(
                 seq_1[:i] + seq_1[i + 1:], param
             )
             new_seq2, new_info2 = insertion(
-                node, seq_2, param, node_id_c, best_accept, probability
+                node, seq_2, param, node_id_c, best_accept=True
             )
             if new_info1 is None or new_info1 is None:
                 continue

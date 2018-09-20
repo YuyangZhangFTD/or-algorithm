@@ -6,6 +6,7 @@ def num2time(n):
     return "%02d" % (n // 60 + 8) + ":" + "%02d" % (n % 60)
 
 
+# TODO: refactor
 def save_result(route_dict, num):
     csv_head = "trans_code,vehicle_type,dist_seq,distribute_lea_tm," \
                "distribute_arr_tm,distance,trans_cost,charge_cost," \

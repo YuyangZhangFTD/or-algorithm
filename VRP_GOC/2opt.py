@@ -2,12 +2,12 @@ from vrp_result import read_solution, save_result
 from vrp_util import generate_seq_info
 from vrp_reader import read_data, get_node_info
 from vrp_improvement import two_opt
+from vrp_model import Param
 
-data_set_num = 1
+data_set_num = 5
 route_dict = read_solution(data_set_num)
 
-ds, tm, delivery, pickup, charge, position, \
-    node_type_judgement = read_data(data_set_num)
+ds, tm, delivery, pickup, charge, position, ntj = read_data(data_set_num)
 delivery = get_node_info(delivery)
 pickup = get_node_info(pickup)
 charge = get_node_info(charge, is_charge=True)
@@ -27,16 +27,21 @@ del last_d, last_p, last_c
 first[(0,)] = 0
 last[(0,)] = 960
 
+param = Param(ds, tm, volume, weight, first, last, ntj, position)
+
+
 cost = 0
 final_route_dict = dict()
 for seq in route_dict.keys():
     info = generate_seq_info(
-        seq, ds, tm, volume, weight, first, last, node_type_judgement
+        seq, param
     )
+    if len(seq) == 1:
+        continue
     new_seq, new_info = two_opt(
-        seq, info, 15, ds, tm, volume, weight, first, last, node_type_judgement
+        seq, info, param, best_accept=True
     )
-    if seq != new_seq:
+    if new_info:
         print("-"*20)
         print(seq)
         print(info)

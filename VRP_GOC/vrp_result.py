@@ -1,13 +1,14 @@
 from vrp_model import SeqInfo
 from vrp_cost import calculate_each_cost
 
+from typing import Dict, Tuple
+
 
 def num2time(n):
     return "%02d" % (n // 60 + 8) + ":" + "%02d" % (n % 60)
 
 
-# TODO: refactor
-def save_result(route_dict, num):
+def save_result(route_dict: Dict[Tuple, SeqInfo], num):
     csv_head = "trans_code,vehicle_type,dist_seq,distribute_lea_tm," \
                "distribute_arr_tm,distance,trans_cost,charge_cost," \
                "wait_cost,fixed_use_cost,total_cost,charge_cnt"
@@ -20,15 +21,14 @@ def save_result(route_dict, num):
             vehicle_type = info.vehicle_type
             dist_seq = ";".join([str(x) for x in (0,) + seq + (0,)])
 
-            distribute_lea_tm = num2time(info.ls)
-            distribute_arr_tm = num2time(info.lf)
+            distribute_lea_tm = num2time(info.lps_list[0])
+            distribute_arr_tm = num2time(info.lps_list[-1])
 
             distance = info.total_distance
-            charge_cnt = info.charge_cnt
+            charge_cnt = sum(info.charge_index)
             wait = info.wait
-            trans_cost, fixed_use_cost, wait_cost, charge_cost = calculate_each_cost(
-                distance, vehicle_type, wait, charge_cnt
-            )
+            trans_cost, fixed_use_cost, wait_cost, charge_cost = \
+                calculate_each_cost(distance, vehicle_type, wait, charge_cnt)
             total_cost = info.cost
             value = trans_code + "," + str(vehicle_type) + "," + \
                     dist_seq + "," + distribute_lea_tm + "," + \

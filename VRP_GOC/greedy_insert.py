@@ -5,6 +5,10 @@ from vrp.model import SeqInfo, Param
 from vrp.improvement import two_opt
 from vrp.neighborhhod import get_neighborhood_dict
 from vrp.constant import *
+from vrp.util import generate_seq_info
+
+from random import choice
+from functools import reduce
 
 # =========================== parameters ============================
 data_set_num = 5
@@ -39,18 +43,23 @@ candidate_seqs = {*node_id_d, *node_id_p}
 param = Param(ds, tm, volume, weight, first, last, ntj, position)
 
 # ======================== init route list ==========================
-init_route_dict = {
-    seq: SeqInfo(
+init_route_dict = dict()
+for seq in candidate_seqs:
+    # 0 if first[seq] - tm[(0,), seq] < 0 else first[seq] - tm[(0,), seq],
+    # last[seq] - tm[(0,), seq],
+    # TODO:
+    eps_list = []
+    lps_list = []
+    cost = (ds[(0,), seq] + ds[seq, (0,)]) * TRANS_COST_2 + FIXED_COST_2 if \
+        ds[(0,), seq] + ds[seq, (0,)] <= DISTANCE_2 else M
+    init_route_dict[seq] = SeqInfo(
         2, volume[seq], weight[seq], ds[(0,), seq] + ds[seq, (0,)],
-        0 if first[seq] - tm[(0,), seq] < 0 else first[seq] - tm[(0,), seq],
-        last[seq] - tm[(0,), seq],
+        eps_list, lps_list,
         first[seq] + SERVE_TIME + tm[seq, (0,)],
         last[seq] + SERVE_TIME + tm[seq, (0,)],
-        0, 0, (ds[(0,), seq] + ds[seq, (0,)]) * TRANS_COST_2 + FIXED_COST_2 if
-        ds[(0,), seq] + ds[seq, (0,)] <= DISTANCE_2 else M
+        0, 0, cost
     )
-    for seq in candidate_seqs
-}
+
 
 # ============================== vrp ================================
 route_dict = saving_value_construct(
@@ -60,18 +69,22 @@ route_dict = saving_value_construct(
 )
 del candidate_seqs
 
-# TODO: local search
+# ======================= greedy insert ==============================
 neighborhood_dict = get_neighborhood_dict(
     route_dict, position, neighborhood_number=neighborhood_number
 )
 
+# for _ in range(1000):
+#     route_list = list(route_dict.keys())
+#     seed_route = choice(route_list)
+#     seed_neighborhood = neighborhood_dict.pop(seed_route)
+#     re_nodes = reduce(lambda x, y: x + y, [seed_route, *seed_neighborhood])
+
+"""
+# ========================= evaluation ===============================
 cost = 0
 for k, v in route_dict.items():
     new_seq, new_info = two_opt(k, v, param, best_accept=True)
     cost += new_info.cost
-    # print(new_seq)
-    # print(new_info)
-
-# ============================== save ===============================
 print("final cost: " + str(cost))
-save_result(route_dict, data_set_num)
+"""

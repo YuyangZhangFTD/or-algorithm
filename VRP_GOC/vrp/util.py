@@ -1,6 +1,6 @@
-from vrp_model import SeqInfo, Param
-from vrp_cost import calculate_each_cost
-from vrp_constant import *
+from vrp.model import SeqInfo, Param
+from vrp.cost import calculate_each_cost
+from vrp.constant import *
 
 import random
 from itertools import permutations

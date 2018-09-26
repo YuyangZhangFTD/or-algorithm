@@ -1,8 +1,8 @@
-from vrp_result import read_solution, save_result
-from vrp_util import generate_seq_info
-from vrp_reader import read_data, get_node_info
-from vrp_improvement import two_opt
-from vrp_model import Param
+from vrp.result import read_solution, save_result
+from vrp.util import generate_seq_info
+from vrp.reader import read_data, get_node_info
+from vrp.improvement import two_opt
+from vrp.model import Param
 
 data_set_num = 5
 route_dict = read_solution(data_set_num)
@@ -32,7 +32,7 @@ param = Param(ds, tm, volume, weight, first, last, ntj, position)
 
 cost = 0
 final_route_dict = dict()
-for seq in route_dict.keys():
+for seq in route_dict:
     info = generate_seq_info(
         seq, param
     )

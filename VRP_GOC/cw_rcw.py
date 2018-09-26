@@ -1,10 +1,10 @@
-from vrp_reader import read_data, get_node_info
-from vrp_result import save_result
-from vrp_construction import saving_value_construct
-from vrp_model import SeqInfo
-from vrp_improvement import two_opt
-from vrp_util import get_neighborhood_dict
-from vrp_constant import *
+from vrp.reader import read_data, get_node_info
+from vrp.result import save_result
+from vrp.construction import saving_value_construct
+from vrp.model import SeqInfo
+from vrp.improvement import two_opt
+from vrp.util import get_neighborhood_dict
+from vrp.constant import *
 
 from random import choice
 from functools import reduce

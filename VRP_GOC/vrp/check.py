@@ -1,9 +1,9 @@
-from vrp_util import calculate_seq_distance
-from vrp_constant import *
+from vrp.util import calculate_seq_distance
+from vrp.constant import *
 
 from functools import reduce
 from typing import Tuple
-from vrp_model import SeqInfo, Param
+from vrp.model import SeqInfo, Param
 
 
 def check_concat_seqs_available(
@@ -87,7 +87,7 @@ def check_output(route_dict, is_charge):
     all_nodes = [
         x
         for x in
-        reduce(lambda x, y: x + y, [x for x in route_dict.keys()])
+        reduce(lambda x, y: x + y, [x for x in route_dict])
         if not is_charge(x)
     ]
     if len(all_nodes) == len(set(all_nodes)):

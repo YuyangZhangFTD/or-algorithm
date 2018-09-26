@@ -1,9 +1,9 @@
-from vrp_result import read_solution, save_result
-from vrp_reader import read_data, get_node_info
-from vrp_util import generate_seq_info
-from vrp_neighborhhod import get_neighborhood_dict
-from vrp_improvement import two_opt, two_opt_star
-from vrp_model import Param
+from vrp.result import read_solution, save_result
+from vrp.reader import read_data, get_node_info
+from vrp.util import generate_seq_info
+from vrp.neighborhhod import get_neighborhood_dict
+from vrp.improvement import two_opt, two_opt_star
+from vrp.model import Param
 
 from random import choice
 
@@ -38,7 +38,7 @@ new_cost = 0
 old_cost = 0
 final_route_dict = dict()
 
-for seq in route_dict.keys():
+for seq in route_dict:
     info = generate_seq_info(seq, param)
     route_dict[seq] = info
 neighborhood_dict = get_neighborhood_dict(
@@ -46,12 +46,12 @@ neighborhood_dict = get_neighborhood_dict(
 )
 
 # ===================================================================
-candidate_seqs = list(route_dict.keys())
+candidate_seqs = list(route_dict)
 have_updated = False
 for _ in range(iter_number):
 
     if have_updated:
-        candidate_seqs = list(route_dict.keys())
+        candidate_seqs = list(route_dict)
         neighborhood_dict = get_neighborhood_dict(
             route_dict, position, neighborhood_number=10
         )
@@ -87,7 +87,7 @@ for k, v in route_dict.items():
     print("-"*30)
     print(k)
     print(v)
-    new_seq, new_info = two_opt(k, v, param, iter_num=30)
+    new_seq, new_info = two_opt(k, v, param, best_accept=True)
     print(new_seq)
     print(new_info)
     final_route_dict[new_seq] = new_info

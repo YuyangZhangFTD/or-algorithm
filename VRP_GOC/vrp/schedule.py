@@ -1,5 +1,5 @@
-from vrp_model import Param
-from vrp_constant import *
+from vrp.model import Param
+from vrp.constant import *
 
 from typing import Tuple, List
 

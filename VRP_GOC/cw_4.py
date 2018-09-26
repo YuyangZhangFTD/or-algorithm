@@ -1,9 +1,9 @@
-from vrp_reader import read_data, get_node_info
-from vrp_util import generate_seq_info
-from vrp_result import save_result
-from vrp_construction import merge_saving_value_pairs
-from vrp_model import SeqInfo, Param
-from vrp_constant import *
+from vrp.reader import read_data, get_node_info
+from vrp.util import generate_seq_info
+from vrp.result import save_result
+from vrp.construction import merge_saving_value_pairs
+from vrp.model import SeqInfo, Param
+from vrp.constant import *
 
 from copy import deepcopy
 

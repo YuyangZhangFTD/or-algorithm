@@ -1,6 +1,6 @@
-from vrp_util import generate_seq_info
-from vrp_model import SeqInfo, Param
-from vrp_check import check_concat_seqs_available
+from vrp.util import generate_seq_info
+from vrp.model import SeqInfo, Param
+from vrp.check import check_concat_seqs_available
 
 from copy import deepcopy
 from typing import Dict, Tuple, Set
@@ -38,7 +38,7 @@ def generate_saving_value_pair_candidates(
 
             # TODO
             is_available, err = check_concat_seqs_available(
-                seq1, seq2, route_dict[seq1], route_dict[seq2],param
+                seq1, route_dict[seq1], seq2, route_dict[seq2], param
             )
 
             if is_available:
@@ -140,7 +140,7 @@ def saving_value_construct(
             merge_seq_each_time=merge_seq_each_time
         )
         # update candidate seqs
-        candidate_seqs = list(route_dict.keys())
+        candidate_seqs = list(route_dict)
         if new_seq_count < 1:
             break
     return route_dict

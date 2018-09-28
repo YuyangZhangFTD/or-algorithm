@@ -47,9 +47,16 @@ init_route_dict = dict()
 for seq in candidate_seqs:
     # 0 if first[seq] - tm[(0,), seq] < 0 else first[seq] - tm[(0,), seq],
     # last[seq] - tm[(0,), seq],
-    # TODO:
-    eps_list = []
-    lps_list = []
+    eps_list = [
+        0,
+        tm[(0,), seq],
+        tm[(0,), seq] + SERVE_TIME + tm[seq, (0,)]
+    ]
+    lps_list = [
+        last[seq] - tm[(0,), seq],
+        last[seq],
+        last[seq] + SERVE_TIME + tm[seq, (0,)]
+    ]
     cost = (ds[(0,), seq] + ds[seq, (0,)]) * TRANS_COST_2 + FIXED_COST_2 if \
         ds[(0,), seq] + ds[seq, (0,)] <= DISTANCE_2 else M
     init_route_dict[seq] = SeqInfo(
@@ -59,7 +66,6 @@ for seq in candidate_seqs:
         last[seq] + SERVE_TIME + tm[seq, (0,)],
         0, 0, cost
     )
-
 
 # ============================== vrp ================================
 route_dict = saving_value_construct(

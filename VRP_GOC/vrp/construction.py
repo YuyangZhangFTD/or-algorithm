@@ -78,7 +78,7 @@ def merge_saving_value_pairs(
         candidate_seqs, route_dict, param, node_id_c,
         time_sorted_limit=time_sorted_limit
     )
-    print(len(saving_value_pair_candidate_dict))
+    # print(len(saving_value_pair_candidate_dict))
 
     saving_value_rank_list = []
     for (seq1, seq2), (new_seq, new_info, saving_value) in \

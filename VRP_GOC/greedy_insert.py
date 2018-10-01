@@ -59,6 +59,7 @@ for seq in candidate_seqs:
     ]
     cost = (ds[(0,), seq] + ds[seq, (0,)]) * TRANS_COST_2 + FIXED_COST_2 if \
         ds[(0,), seq] + ds[seq, (0,)] <= DISTANCE_2 else M
+
     init_route_dict[seq] = SeqInfo(
         2, volume[seq], weight[seq], ds[(0,), seq] + ds[seq, (0,)],
         eps_list, lps_list,
@@ -80,11 +81,36 @@ neighborhood_dict = get_neighborhood_dict(
     route_dict, position, neighborhood_number=neighborhood_number
 )
 
-# for _ in range(1000):
-#     route_list = list(route_dict.keys())
-#     seed_route = choice(route_list)
-#     seed_neighborhood = neighborhood_dict.pop(seed_route)
-#     re_nodes = reduce(lambda x, y: x + y, [seed_route, *seed_neighborhood])
+for _ in range(1):
+    route_list = list(route_dict.keys())
+    seed_route = choice(route_list)
+    seed_neighborhood = neighborhood_dict.pop(seed_route)
+    cost = 0
+    for k in [seed_route, *seed_neighborhood]:
+        cost += route_dict[k].cost
+    print("old cost: " + str(cost))
+    re_nodes = set(map(
+        lambda x: (x,),
+        reduce(lambda x, y: x + y, [seed_route, *seed_neighborhood])
+    ))
+    # re_route_dict = saving_value_construct(
+    #     re_nodes, init_route_dict, param, node_id_c,
+    #     time_sorted_limit=time_sorted_limit,
+    #     merge_seq_each_time=merge_seq_each_time
+    # )
+    update = False
+    re_route_dict = dict()
+    while True:
+        seed = re_nodes.pop()
+
+        if not update:
+            break
+
+    cost = 0
+    for k, v in re_route_dict.items():
+        cost += v.cost
+    print("new cost: " + str(cost))
+
 
 """
 # ========================= evaluation ===============================

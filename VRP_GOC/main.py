@@ -34,6 +34,8 @@ del last_d, last_p, last_c
 
 first[(0,)] = 0
 last[(0,)] = 960
+# volume[(0,)] = 0
+# weight[(0, )] = 0
 
 candidate_seqs = {*node_id_d, *node_id_p}
 param = Param(ds, tm, volume, weight, first, last, ntj, position)

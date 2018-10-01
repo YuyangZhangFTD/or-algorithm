@@ -3,7 +3,7 @@ from vrp.cost import calculate_each_cost
 from vrp.constant import *
 
 import random
-from itertools import permutations
+from itertools import permutations, accumulate, chain, repeat
 from typing import Tuple, List
 
 
@@ -194,6 +194,34 @@ def generate_seq_info(
             current_distance, vehicle_type, total_wait, charge_cnt
         ))
     )
+
+
+# TODO: refactor with map and reduce
+def generate_seq_info_map_reduce(
+        seq: Tuple[int],
+        param: Param,
+        vehicle_type: int = -1
+) -> SeqInfo:
+    ds, tm, volume, weight, first, last, ntj, position = param
+    is_delivery, is_pickup, is_charge = ntj
+
+    is_type2 = True if vehicle_type == 2 else False
+    volume_limit = VOLUME_2 if is_type2 else VOLUME_1
+    weight_limit = WEIGHT_2 if is_type2 else WEIGHT_1
+    distance_limit = DISTANCE_2 if is_type2 else DISTANCE_1
+    is_charge_filter = filter(lambda x: is_charge(x), seq)
+
+    tuple_seq = tuple(map(lambda x: (x,), (0, *seq, 0)))
+    vol_wei_check = map(lambda x: (volume[x], weight[x]), zip(tuple_seq[1:-1]))
+    ds_check = map(lambda x: ds[x], zip(tuple_seq[:-1], tuple_seq[1:]))
+
+    tm_edge = tuple(
+        tm[x] + y for *x, y in
+        zip(tuple_seq[:-1], tuple_seq[1:], chain((0,), repeat(30)))
+    )
+    for edge in zip(tuple_seq[:-1], tuple_seq[1:]):
+        pass
+    pass
 
 
 def generate_seq_from_nodes(

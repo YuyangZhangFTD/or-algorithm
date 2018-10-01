@@ -2,7 +2,6 @@ from vrp.util import generate_seq_info
 from vrp.model import SeqInfo, Param
 from vrp.check import check_concat_seqs_available
 
-from copy import deepcopy
 from typing import Dict, Tuple, Set
 
 
@@ -36,7 +35,6 @@ def generate_saving_value_pair_candidates(
                 ):
                     continue
 
-            # TODO
             is_available, err = check_concat_seqs_available(
                 seq1, route_dict[seq1], seq2, route_dict[seq2], param
             )
@@ -78,7 +76,7 @@ def merge_saving_value_pairs(
         candidate_seqs, route_dict, param, node_id_c,
         time_sorted_limit=time_sorted_limit
     )
-    # print(len(saving_value_pair_candidate_dict))
+    print(len(saving_value_pair_candidate_dict))
 
     saving_value_rank_list = []
     for (seq1, seq2), (new_seq, new_info, saving_value) in \
@@ -131,8 +129,11 @@ def saving_value_construct(
     :param merge_seq_each_time:
     :return:
     """
-    route_dict = deepcopy(init_route_dict)
-    candidate_seqs = deepcopy(candidate_seqs)
+    # candidate_seqs = set(*candidate_seqs)
+    route_dict = {
+        k: v for k, v in init_route_dict.items()
+        if k in candidate_seqs or k in node_id_c
+    }
     while True:
         route_dict, new_seq_count = merge_saving_value_pairs(
             candidate_seqs, route_dict, param, node_id_c,
@@ -144,3 +145,7 @@ def saving_value_construct(
         if new_seq_count < 1:
             break
     return route_dict
+
+
+def greedy_insertion_construct():
+    pass

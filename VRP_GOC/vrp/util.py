@@ -17,12 +17,12 @@ def calculate_seq_distance(
     i = 0
     tmp_seq = (0, *seq, 0)
     dist_list = []
-    for j in (x+1 for x in charge_index):
-        sub_seq = tmp_seq[i:j+1]
+    for j in (x + 1 for x in charge_index):
+        sub_seq = tmp_seq[i:j + 1]
         dist = 0
         # calculate sub_seq
         node0 = sub_seq[:1]
-        for node1 in ((x, ) for x in sub_seq[1:]):
+        for node1 in ((x,) for x in sub_seq[1:]):
             dist += ds[node0, node1]
             node0 = node1
         dist_list.append(dist)
@@ -196,8 +196,8 @@ def generate_seq_info(
     )
 
 
-# TODO: refactor with map and reduce
-def generate_seq_info_map_reduce(
+# TODO: refactor with builtin function
+def generate_seq_info_refactor(
         seq: Tuple[int],
         param: Param,
         vehicle_type: int = -1
@@ -212,13 +212,50 @@ def generate_seq_info_map_reduce(
     is_charge_filter = filter(lambda x: is_charge(x), seq)
 
     tuple_seq = tuple(map(lambda x: (x,), (0, *seq, 0)))
-    vol_wei_check = map(lambda x: (volume[x], weight[x]), zip(tuple_seq[1:-1]))
     ds_check = map(lambda x: ds[x], zip(tuple_seq[:-1], tuple_seq[1:]))
+
+    max_weight = sum(map(
+        lambda x: weight[x], filter(lambda x: is_delivery(x), tuple_seq[1:-1])
+    )) + max(accumulate(map(
+        lambda x: - weight[x] if is_delivery(x) else weight[x], tuple_seq[1:-1]
+    )))
+
+    max_volume = sum(map(
+        lambda x: volume[x], filter(lambda x: is_delivery(x), tuple_seq[1:-1])
+    )) + max(accumulate(map(
+        lambda x: - volume[x] if is_delivery(x) else volume[x], tuple_seq[1:-1]
+    )))
 
     tm_edge = tuple(
         tm[x] + y for *x, y in
         zip(tuple_seq[:-1], tuple_seq[1:], chain((0,), repeat(30)))
     )
+    # eps = map(lambda x, y: first[x] + y, tuple_seq[:-1], tm_edge)
+    # lps = map(lambda x, y: last[x] + y, tuple_seq[:-1], tm_edge)
+    delta = sum(map(
+        lambda x, y: max(first[x] - y, 0),
+        tuple_seq[1:], map(lambda x, y: first[x] + y, tuple_seq[:-1], tm_edge)
+    ))
+    shift = sum(map(
+        lambda x, y: max(last[x] - y, 0),
+        tuple_seq[1:], map(lambda x, y: last[x] + y, tuple_seq[:-1], tm_edge)
+    ))
+    lps_list = [
+                   END_TIME - shift - x
+                   for x in (0, *accumulate(tm_edge[::-1]))
+               ][::-1]
+    lps_list = [map(lambda x, y: max(x, first[y]), lps_list, tuple_seq)]
+    if any(map(lambda x, y: x < first[y], lps_list, tuple_seq)):
+        wait = sum(map(lambda x, y: max(first[x] - y, 0), tuple_seq, lps_list))
+        lps_list = list(map(lambda x, y: max(x, first[y]), lps_list, tuple_seq))
+        eps_list = lps_list[:]
+    else:
+        eps_list = [
+            START_TIME + delta + x
+            for x in (0, *accumulate(tm_edge))
+        ]
+        wait = 0
+
     for edge in zip(tuple_seq[:-1], tuple_seq[1:]):
         pass
     pass

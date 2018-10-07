@@ -18,7 +18,7 @@ local_reconstruct_times = 1000
 neighborhood_number = 10
 
 # =========================== read data =============================
-# ntj = node_type_judgement
+# ntj: node_type_judgement
 ds, tm, delivery, pickup, charge, position, ntj = read_data(data_set_num)
 delivery = get_node_info(delivery)
 pickup = get_node_info(pickup)

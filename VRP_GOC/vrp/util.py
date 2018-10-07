@@ -4,9 +4,11 @@ from vrp.constant import *
 
 import random
 from itertools import permutations, accumulate, chain, repeat
+from functools import reduce
 from typing import Tuple, List
 
 
+"""
 def calculate_seq_distance(
         seq: Tuple,
         param: Param
@@ -36,6 +38,31 @@ def calculate_seq_distance(
     dist_list.append(dist)
 
     return sum(dist_list), dist_list
+"""
+
+
+def calculate_seq_distance(
+        seq: Tuple,
+        param: Param
+) -> (float, List[float]):
+    ds, *_, ntj, _ = param
+    *_, is_charge = ntj
+
+    tuple_seq = tuple(((x,) for x in (0, *seq, 0)))
+    ci = [
+        i for i in range(len(tuple_seq))
+        if is_charge(tuple_seq[i]) or tuple_seq[i] == (0,)
+    ]
+    if len(ci) == 2:
+        dist = sum(map(lambda x: ds[x], zip(tuple_seq[:-1], tuple_seq[1:])))
+        return dist, [dist]
+    else:
+        sub_seq = map(lambda x, y: tuple_seq[x:y+1], ci[:-1], ci[1:])
+        dist_list = [
+            sum(map(lambda x: ds[x], zip(sub[:-1], sub[1:])))
+            for sub in sub_seq
+        ]
+        return sum(dist_list), dist_list
 
 
 def generate_seq_info(
@@ -197,6 +224,10 @@ def generate_seq_info(
 
 
 # TODO: refactor with builtin function
+def _2_elem_tuple_add(x: Tuple, y: Tuple) -> Tuple:
+    return x[0] + y[0], x[1] + y[1]
+
+
 def generate_seq_info_refactor(
         seq: Tuple[int],
         param: Param,
@@ -209,29 +240,56 @@ def generate_seq_info_refactor(
     volume_limit = VOLUME_2 if is_type2 else VOLUME_1
     weight_limit = WEIGHT_2 if is_type2 else WEIGHT_1
     distance_limit = DISTANCE_2 if is_type2 else DISTANCE_1
-    is_charge_filter = filter(lambda x: is_charge(x), seq)
 
-    tuple_seq = tuple(map(lambda x: (x,), (0, *seq, 0)))
-    ds_check = map(lambda x: ds[x], zip(tuple_seq[:-1], tuple_seq[1:]))
+    charge_index = [i for i in range(len(seq)) if is_charge(seq[i])]
 
-    max_weight = sum(map(
-        lambda x: weight[x], filter(lambda x: is_delivery(x), tuple_seq[1:-1])
-    )) + max(accumulate(map(
-        lambda x: - weight[x] if is_delivery(x) else weight[x], tuple_seq[1:-1]
-    )))
+    tuple_seq = tuple(((x,) for x in (0, *seq, 0)))
 
-    max_volume = sum(map(
-        lambda x: volume[x], filter(lambda x: is_delivery(x), tuple_seq[1:-1])
-    )) + max(accumulate(map(
-        lambda x: - volume[x] if is_delivery(x) else volume[x], tuple_seq[1:-1]
-    )))
+    # volume and weight check
+    max_volume_weight = max(accumulate(chain((
+        reduce(
+            _2_elem_tuple_add,
+            ((volume.get(x, 0), weight.get(x, 0))
+             for x in tuple_seq[1:-1] if is_delivery(x))
+        ),),
+        ((-volume.get(x, 0), -weight.get(x, 0))
+         if is_delivery(x) else (volume.get(x, 0), weight.get(x, 0))
+         for x in tuple_seq[1:-1])), _2_elem_tuple_add)
+    )
+
+    if max_volume_weight[0] > volume_limit or \
+            max_volume_weight[1] > weight_limit:
+        # if vehicle type is specific and limit is violated, return None
+        if vehicle_type == 2 or vehicle_type == 1:
+            return None
+        if max_volume_weight[0] > VOLUME_2 or max_volume_weight[1] > WEIGHT_2:
+            return None
+        else:
+            is_type2 = True
+            distance_limit = DISTANCE_2
+
+    ds_edge = tuple(map(lambda x: ds[x], zip(tuple_seq[:-1], tuple_seq[1:])))
+    ds_limit = (
+        (x + 1) * distance_limit for x in
+        accumulate(1 if is_charge(x) else 0 for x in tuple_seq[:-1])
+    )
+    if any(map(lambda x, y: x > y, ds_edge, ds_limit)):
+        if vehicle_type == 1 or vehicle_type == 2 or is_type2:
+            return None
+        if any(map(
+                lambda x, y: x > y, ds_edge,
+                ((x + 1) * DISTANCE_2 for x in accumulate(
+                    1 if is_charge(x) else 0 for x in tuple_seq[:-1]
+                ))
+        )):
+            is_type2 = True
 
     tm_edge = tuple(
         tm[x] + y for *x, y in
         zip(tuple_seq[:-1], tuple_seq[1:], chain((0,), repeat(30)))
     )
-    # eps = map(lambda x, y: first[x] + y, tuple_seq[:-1], tm_edge)
-    # lps = map(lambda x, y: last[x] + y, tuple_seq[:-1], tm_edge)
+    map(lambda x, y: max(first[x] - y, 0), tuple_seq[1:], accumulate(tm_edge))
+    # TODO: change delta
     delta = sum(map(
         lambda x, y: max(first[x] - y, 0),
         tuple_seq[1:], map(lambda x, y: first[x] + y, tuple_seq[:-1], tm_edge)
@@ -244,7 +302,7 @@ def generate_seq_info_refactor(
                    END_TIME - shift - x
                    for x in (0, *accumulate(tm_edge[::-1]))
                ][::-1]
-    lps_list = [map(lambda x, y: max(x, first[y]), lps_list, tuple_seq)]
+    lps_list = [*map(lambda x, y: max(x, first[y]), lps_list, tuple_seq)]
     if any(map(lambda x, y: x < first[y], lps_list, tuple_seq)):
         wait = sum(map(lambda x, y: max(first[x] - y, 0), tuple_seq, lps_list))
         lps_list = list(map(lambda x, y: max(x, first[y]), lps_list, tuple_seq))
@@ -256,9 +314,19 @@ def generate_seq_info_refactor(
         ]
         wait = 0
 
-    for edge in zip(tuple_seq[:-1], tuple_seq[1:]):
-        pass
-    pass
+    if vehicle_type == -1:
+        if is_type2:
+            vehicle_type = 2
+        else:
+            vehicle_type = 1
+
+    return SeqInfo(
+        vehicle_type, *max_volume_weight, sum(ds_edge),
+        eps_list, lps_list, sum(tm_edge), wait, lps_list[0] - eps_list[0],
+        charge_index, sum(calculate_each_cost(
+            sum(ds_edge), vehicle_type, wait, len(charge_index)
+        ))
+    )
 
 
 def generate_seq_from_nodes(

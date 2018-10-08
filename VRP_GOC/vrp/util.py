@@ -1,5 +1,6 @@
 from vrp.model import SeqInfo, Param
 from vrp.cost import calculate_each_cost
+from vrp.schedule import schedule_time
 from vrp.constant import *
 
 import random
@@ -24,7 +25,7 @@ def calculate_seq_distance(
         dist = 0
         # calculate sub_seq
         node0 = sub_seq[:1]
-        for node1 in ((x,) for x in sub_seq[1:]):
+        for node1 in zip(sub_seq[1:]):
             dist += ds[node0, node1]
             node0 = node1
         dist_list.append(dist)
@@ -32,7 +33,7 @@ def calculate_seq_distance(
     sub_seq = tmp_seq[i:]
     dist = 0
     node0 = sub_seq[:1]
-    for node1 in ((x,) for x in sub_seq[1:]):
+    for node1 in zip(sub_seq[1:]):
         dist += ds[node0, node1]
         node0 = node1
     dist_list.append(dist)
@@ -48,7 +49,7 @@ def calculate_seq_distance(
     ds, *_, ntj, _ = param
     *_, is_charge = ntj
 
-    tuple_seq = tuple(((x,) for x in (0, *seq, 0)))
+    tuple_seq = tuple(zip((0, *seq, 0)))
     ci = [
         i for i in range(len(tuple_seq))
         if is_charge(tuple_seq[i]) or tuple_seq[i] == (0,)
@@ -89,8 +90,8 @@ def generate_seq_info(
 
     # init volume and weight
     delivery_node = list(filter(lambda x: is_delivery(x), seq))
-    init_volume = sum([volume[(x,)] for x in delivery_node])
-    init_weight = sum([weight[(x,)] for x in delivery_node])
+    init_volume = sum([volume[x] for x in zip(delivery_node)])
+    init_weight = sum([weight[x] for x in zip(delivery_node)])
 
     current_volume = init_volume
     current_weight = init_weight
@@ -172,7 +173,11 @@ def generate_seq_info(
         total_delta += delta
 
         # eps: eps_node2
-        eps = max(eps + serve_time + tm[node1, node2], first[node2])
+        if delta > 0:
+            eps = first[node2]
+        else:
+            eps += tm[node1, node2] + serve_time
+        # eps = max(eps + serve_time + tm[node1, node2], first[node2])
 
         # update eps_list and lps_list
         if delta > 0 or wait > 0:
@@ -243,7 +248,8 @@ def generate_seq_info_refactor(
 
     charge_index = [i for i in range(len(seq)) if is_charge(seq[i])]
 
-    tuple_seq = tuple(((x,) for x in (0, *seq, 0)))
+    # use zip
+    tuple_seq = tuple(zip((0, *seq, 0)))
 
     # volume and weight check
     max_volume_weight = max(accumulate(chain((
@@ -284,35 +290,8 @@ def generate_seq_info_refactor(
         )):
             is_type2 = True
 
-    tm_edge = tuple(
-        tm[x] + y for *x, y in
-        zip(tuple_seq[:-1], tuple_seq[1:], chain((0,), repeat(30)))
-    )
-    map(lambda x, y: max(first[x] - y, 0), tuple_seq[1:], accumulate(tm_edge))
-    # TODO: change delta
-    delta = sum(map(
-        lambda x, y: max(first[x] - y, 0),
-        tuple_seq[1:], map(lambda x, y: first[x] + y, tuple_seq[:-1], tm_edge)
-    ))
-    shift = sum(map(
-        lambda x, y: max(last[x] - y, 0),
-        tuple_seq[1:], map(lambda x, y: last[x] + y, tuple_seq[:-1], tm_edge)
-    ))
-    lps_list = [
-                   END_TIME - shift - x
-                   for x in (0, *accumulate(tm_edge[::-1]))
-               ][::-1]
-    lps_list = [*map(lambda x, y: max(x, first[y]), lps_list, tuple_seq)]
-    if any(map(lambda x, y: x < first[y], lps_list, tuple_seq)):
-        wait = sum(map(lambda x, y: max(first[x] - y, 0), tuple_seq, lps_list))
-        lps_list = list(map(lambda x, y: max(x, first[y]), lps_list, tuple_seq))
-        eps_list = lps_list[:]
-    else:
-        eps_list = [
-            START_TIME + delta + x
-            for x in (0, *accumulate(tm_edge))
-        ]
-        wait = 0
+    # TODO: time window constraint
+    eps_list, lps_list, time_len, total_wait, buffer = schedule_time(seq, param)
 
     if vehicle_type == -1:
         if is_type2:
@@ -322,9 +301,9 @@ def generate_seq_info_refactor(
 
     return SeqInfo(
         vehicle_type, *max_volume_weight, sum(ds_edge),
-        eps_list, lps_list, sum(tm_edge), wait, lps_list[0] - eps_list[0],
+        eps_list, lps_list, time_len, total_wait, buffer,
         charge_index, sum(calculate_each_cost(
-            sum(ds_edge), vehicle_type, wait, len(charge_index)
+            sum(ds_edge), vehicle_type, total_wait, len(charge_index)
         ))
     )
 

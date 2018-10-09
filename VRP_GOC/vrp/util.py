@@ -228,7 +228,6 @@ def generate_seq_info(
     )
 
 
-# TODO: refactor with builtin function
 def _2_elem_tuple_add(x: Tuple, y: Tuple) -> Tuple:
     return x[0] + y[0], x[1] + y[1]
 
@@ -252,7 +251,7 @@ def generate_seq_info_refactor(
     tuple_seq = tuple(zip((0, *seq, 0)))
 
     # volume and weight check
-    max_volume_weight = max(accumulate(chain((
+    max_volume_weight = tuple(map(max, zip(*accumulate(chain((
         reduce(
             _2_elem_tuple_add,
             ((volume.get(x, 0), weight.get(x, 0))
@@ -261,7 +260,7 @@ def generate_seq_info_refactor(
         ((-volume.get(x, 0), -weight.get(x, 0))
          if is_delivery(x) else (volume.get(x, 0), weight.get(x, 0))
          for x in tuple_seq[1:-1])), _2_elem_tuple_add)
-    )
+    )))
 
     if max_volume_weight[0] > volume_limit or \
             max_volume_weight[1] > weight_limit:
@@ -279,16 +278,18 @@ def generate_seq_info_refactor(
         (x + 1) * distance_limit for x in
         accumulate(1 if is_charge(x) else 0 for x in tuple_seq[:-1])
     )
-    if any(map(lambda x, y: x > y, ds_edge, ds_limit)):
+    if any(map(lambda x, y: x > y, accumulate(ds_edge), ds_limit)):
         if vehicle_type == 1 or vehicle_type == 2 or is_type2:
             return None
-        if any(map(
-                lambda x, y: x > y, ds_edge,
-                ((x + 1) * DISTANCE_2 for x in accumulate(
-                    1 if is_charge(x) else 0 for x in tuple_seq[:-1]
-                ))
-        )):
-            is_type2 = True
+        else:
+            ds_limit = (
+                (x + 1) * DISTANCE_2 for x in
+                accumulate(1 if is_charge(x) else 0 for x in tuple_seq[:-1])
+            )
+            if any(map(lambda x, y: x > y, accumulate(ds_edge), ds_limit)):
+                return None
+            else:
+                is_type2 = True
 
     # TODO: time window constraint
     eps_list, lps_list, time_len, total_wait, buffer = schedule_time(seq, param)

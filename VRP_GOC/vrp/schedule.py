@@ -2,6 +2,7 @@ from vrp.model import Param
 from vrp.constant import *
 
 from typing import Tuple, List
+from itertools import *
 
 
 def schedule_time(
@@ -81,3 +82,46 @@ def schedule_time(
     buffer = lps_list[0] - eps_list[0]
 
     return eps_list, lps_list, time_len, total_wait, buffer
+
+
+def schedule_time_refactor(
+        seq: Tuple,
+        param: Param
+) -> (List, List, float, float, float):
+    _, tm, _, _, first, last, ntj, _ = param
+    _, _, is_charge = ntj
+    node1 = (0,)
+    serve_time = 0
+    eps = 0  # early possible starting
+    lps = 960  # latest possible starting
+    total_shift = 0
+    time_len = 0
+    total_wait = 0
+    total_delta = 0
+
+    tuple_seq = tuple(zip((0, *seq, 0)))
+    tm_edge = tuple(map(lambda x: tm[x], zip(tuple_seq[:-1], tuple_seq[1:])))
+
+    # lps
+    lps = (960,) + tuple(map(
+        lambda n1, n2, t12: min(last[n1] + t12, last[n2]),
+        tuple_seq[:-1], tuple_seq[1:], tm_edge
+    ))
+    shift = tuple(accumulate(
+        tuple(map(
+            lambda x, y, t: max(x + t - last[y], 0),
+            lps[:-1], tuple_seq[1:], tm_edge
+        ))[::-1]
+    ))[::-1]
+    lps = tuple(map(lambda x, y: x - y, lps, shift))
+
+    # eps
+    eps = (0,) + tuple(map(
+        lambda n1, n2, t12: max(first[n1] + t12, first[n2]),
+        tuple_seq[:-1], tuple_seq[1:], tm_edge
+    ))
+    delta = sum(map(
+        lambda n1, n2, t12: max(first[n2] - first[n1] - t12, 0),
+        tuple_seq[:-1], tuple_seq[1:], tm_edge
+    ))
+    pass

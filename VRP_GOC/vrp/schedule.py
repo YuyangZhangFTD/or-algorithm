@@ -3,6 +3,7 @@ from vrp.constant import *
 
 from typing import Tuple, List
 from itertools import *
+from functools import reduce
 
 
 def schedule_time(
@@ -100,7 +101,11 @@ def schedule_time_refactor(
     total_delta = 0
 
     tuple_seq = tuple(zip((0, *seq, 0)))
-    tm_edge = tuple(map(lambda x: tm[x], zip(tuple_seq[:-1], tuple_seq[1:])))
+    tm_edge = tuple(map(
+        lambda x, y: tm[x] + y,
+        zip(tuple_seq[:-1], tuple_seq[1:]),
+        chain((0,), repeat(30))
+    ))
 
     # lps
     lps = (960,) + tuple(map(
@@ -116,12 +121,65 @@ def schedule_time_refactor(
     lps = tuple(map(lambda x, y: x - y, lps, shift))
 
     # eps
-    eps = (0,) + tuple(map(
-        lambda n1, n2, t12: max(first[n1] + t12, first[n2]),
-        tuple_seq[:-1], tuple_seq[1:], tm_edge
-    ))
-    delta = sum(map(
+    # eps = (0,) + tuple(map(
+    #     lambda n1, n2, t12: max(first[n1] + t12, first[n2]),
+    #     tuple_seq[:-1], tuple_seq[1:], tm_edge
+    # ))
+    delta = tuple(map(
         lambda n1, n2, t12: max(first[n2] - first[n1] - t12, 0),
         tuple_seq[:-1], tuple_seq[1:], tm_edge
     ))
+    eps = (delta,) + tuple(map(
+        lambda x, y: x + y, repeat(delta), accumulate(tm_edge)
+    ))
+
+    # todo
+    def _eps_reduce(x, y):
+        r = max(x[0] + y[0], y[1])
+        x[1].append(r)
+        return r, x[1]
+
+    _, el = reduce(_eps_reduce, chain(
+        [(0, list())], zip(tm_edge, (first[x] for x in tuple_seq[1:]))
+    ))
+    eps_list = [el[0] - tm_edge[0], *el]
+
+    def _lps_reduce(x, y):
+        r = min(x[0] - y[0], y[1])
+        x[1].append(r)
+        return r, x[1]
+
+    _, ll = reduce(
+        _lps_reduce, chain(
+            [(960, list())],
+            zip(reversed(tm_edge), (last[x] for x in reversed(tuple_seq[:-1])))
+        )
+    )
+
+    # todo: total reduce
+    def _schedule_reduce(x, y):
+        # x: (eps1, lps1, eps=[], lps=[])
+        # y: (tm, first2, last2)
+        shift = max(0, x[0] + y[0] - y[2])
+        lps = y[2] if shift > 0 else x[0] + x[1]
+        wait = max(0, y[2] - lps)
+        lps = y[2] if wait > 0 else lps
+        delta = max(0, y[2] - x[0] - y[0])
+        eps = max(x[0] + y[0], y[2])
+
+        # update eps_list and lps_list
+        if delta > 0 or wait > 0:
+            x[2] = [_x + delta - wait for _x in x[2]]
+        if shift > 0:
+            x[3] = [_x - shift for _x in x[3]]
+        x[2].append(eps)
+        x[3].append(lps)
+        return [eps, lps, x[2], x[3]]
+
+    y = tuple((_x, first[_y], last[_y]) for _x, _y in zip(tm_edge, tuple_seq[1:]))
+    _, _, eps, lps = reduce(
+        _schedule_reduce,
+        chain(([0, 960, list(), list()],), y)
+    )
+
     pass

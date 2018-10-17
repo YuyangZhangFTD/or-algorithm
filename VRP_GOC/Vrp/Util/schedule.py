@@ -1,5 +1,5 @@
-from vrp.model import Param
-from vrp.constant import *
+from Vrp.Common.model import Param
+from Vrp.Common.constant import *
 
 from typing import Tuple, List
 from itertools import *

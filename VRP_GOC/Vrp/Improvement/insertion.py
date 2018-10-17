@@ -1,6 +1,6 @@
-from vrp.util import generate_seq_info
-from vrp.model import SeqInfo, Param
-from vrp.constant import *
+from Vrp.Util.util import generate_seq_info
+from Vrp.Common.model import SeqInfo, Param
+from Vrp.Common.constant import *
 
 import random
 from typing import Tuple

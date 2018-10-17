@@ -1,6 +1,6 @@
 import pandas as pd
 
-from vrp.model import SeqDict
+from Vrp.Common.model import SeqDict
 
 
 def time_transformer(s):

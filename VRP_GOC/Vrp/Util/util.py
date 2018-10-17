@@ -1,10 +1,10 @@
-from vrp.model import SeqInfo, Param
-from vrp.cost import calculate_each_cost
-from vrp.schedule import schedule_time
-from vrp.constant import *
+from Vrp.Common.model import SeqInfo, Param
+from Vrp.Evaluator.cost import calculate_each_cost
+from Vrp.Util.schedule import schedule_time
+from Vrp.Common.constant import *
 
 import random
-from itertools import permutations, accumulate, chain, repeat
+from itertools import permutations, accumulate, chain
 from functools import reduce
 from typing import Tuple, List
 
@@ -291,7 +291,7 @@ def generate_seq_info_refactor(
             else:
                 is_type2 = True
 
-    # TODO: time window constraint
+    # TODO: optimize time window constraint
     eps_list, lps_list, time_len, total_wait, buffer = schedule_time(seq, param)
 
     if vehicle_type == -1:

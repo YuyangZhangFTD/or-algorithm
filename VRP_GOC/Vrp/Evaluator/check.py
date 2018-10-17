@@ -1,9 +1,9 @@
-from vrp.util import calculate_seq_distance
-from vrp.constant import *
+from Vrp.Util.util import calculate_seq_distance
+from Vrp.Common.constant import *
 
 from functools import reduce
 from typing import Tuple
-from vrp.model import SeqInfo, Param
+from Vrp.model import SeqInfo, Param
 
 
 def check_concat_seqs_available(

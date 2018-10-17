@@ -1,4 +1,4 @@
-from vrp.model import *
+from Vrp.Common.model import *
 
 from itertools import *
 from functools import reduce

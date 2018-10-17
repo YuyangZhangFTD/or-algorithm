@@ -1,8 +1,8 @@
-from vrp.result import read_solution, save_result
-from vrp.util import generate_seq_info
-from vrp.reader import read_data, get_node_info
-from vrp.improvement import two_opt
-from vrp.model import Param
+from Vrp.IO.result import read_solution, save_result
+from Vrp.Util.util import generate_seq_info
+from Vrp.IO.reader import read_data, get_node_info
+from Vrp.Improvement import two_opt
+from Vrp.Common.model import Param
 
 data_set_num = 5
 route_dict = read_solution(data_set_num)

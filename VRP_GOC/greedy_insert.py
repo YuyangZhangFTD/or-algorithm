@@ -1,11 +1,8 @@
-from vrp.reader import read_data, get_node_info
-from vrp.result import save_result
-from vrp.construction import saving_value_construct
-from vrp.model import SeqInfo, Param
-from vrp.improvement import two_opt
-from vrp.neighborhhod import get_neighborhood_dict
-from vrp.constant import *
-from vrp.util import generate_seq_info
+from Vrp.IO.reader import read_data, get_node_info
+from Vrp.Construction import saving_value_construct
+from Vrp.Common.model import SeqInfo, Param
+from Vrp.Util.neighborhhod import get_neighborhood_dict
+from Vrp.Common.constant import *
 
 from random import choice
 from functools import reduce
@@ -68,7 +65,7 @@ for seq in candidate_seqs:
         0, 0, cost
     )
 
-# ============================== vrp ================================
+# ============================== Vrp ================================
 route_dict = saving_value_construct(
     candidate_seqs, init_route_dict, param, node_id_c,
     time_sorted_limit=time_sorted_limit,

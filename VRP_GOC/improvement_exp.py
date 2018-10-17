@@ -1,9 +1,9 @@
-from vrp.result import read_solution, save_result
-from vrp.reader import read_data, get_node_info
-from vrp.util import generate_seq_info
-from vrp.neighborhhod import get_neighborhood_dict
-from vrp.improvement import two_opt, two_opt_star
-from vrp.model import Param
+from Vrp.IO.result import read_solution, save_result
+from Vrp.IO.reader import read_data, get_node_info
+from Vrp.Util.util import generate_seq_info
+from Vrp.Util.neighborhhod import get_neighborhood_dict
+from Vrp.Improvement import two_opt, two_opt_star
+from Vrp.Common.model import Param
 
 from random import choice
 

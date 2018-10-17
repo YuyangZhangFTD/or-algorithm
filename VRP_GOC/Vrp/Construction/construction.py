@@ -1,6 +1,6 @@
-from vrp.util import generate_seq_info
-from vrp.model import SeqInfo, Param
-from vrp.check import check_concat_seqs_available
+from Vrp.Util.util import generate_seq_info
+from Vrp.Common.model import SeqInfo, Param
+from Vrp.Evaluator.check import check_concat_seqs_available
 
 from typing import Dict, Tuple, Set
 

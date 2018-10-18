@@ -1,5 +1,5 @@
-from Vrp.Common.model import SeqInfo
-from Vrp.Evaluator.cost import calculate_each_cost
+from vrp.common.model import SeqInfo
+from vrp.evaluator.cost import calculate_each_cost
 
 from typing import Dict, Tuple
 

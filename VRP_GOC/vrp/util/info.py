@@ -1,7 +1,7 @@
-from Vrp.Common.model import SeqInfo, Param
-from Vrp.Evaluator.cost import calculate_each_cost
-from Vrp.Util.schedule import schedule_time
-from Vrp.Common.constant import *
+from vrp.common.model import SeqInfo, Param
+from vrp.evaluator.cost import calculate_each_cost
+from vrp.util.schedule import schedule_time
+from vrp.common.constant import *
 
 import random
 from itertools import permutations, accumulate, chain

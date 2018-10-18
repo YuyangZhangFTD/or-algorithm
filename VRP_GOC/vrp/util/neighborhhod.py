@@ -1,4 +1,4 @@
-from Vrp.Common.model import SeqInfo
+from vrp.common.model import SeqInfo
 
 from functools import reduce
 from typing import Tuple, Dict, List

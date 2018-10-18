@@ -1,4 +1,4 @@
-from Vrp.Common.constant import *
+from vrp.common.constant import *
 
 
 def calculate_each_cost(distance, vehicle_type, wait, charge_cnt):

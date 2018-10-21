@@ -1,7 +1,7 @@
 from vrp.io.result import read_solution, save_result
 from vrp.util.info import generate_seq_info
 from vrp.io.reader import read_data, get_node_info
-from vrp.improvement import two_opt
+from vrp.improvement.intra_route import two_opt
 from vrp.common.model import Param
 
 data_set_num = 5

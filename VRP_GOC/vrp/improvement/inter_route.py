@@ -1,4 +1,5 @@
 from vrp.common.model import SeqInfo, Param
+from vrp.common.constant import M
 from vrp.util.info import generate_seq_info
 from vrp.util.insertion import insertion
 
@@ -14,7 +15,8 @@ def two_opt_star(
         param: Param,
         best_accept: bool = True,
         better_accept: bool = True,
-        probability: float = 0.8
+        probability: float = 0.8,
+        infeasible: bool = False
 ) -> ((Tuple, SeqInfo), (Tuple, SeqInfo)):
     """
     2-opt* (2-opt* exchange, 2-opt move):
@@ -32,32 +34,38 @@ def two_opt_star(
     :param best_accept:
     :param better_accept:
     :param probability:
+    :param infeasible
     :return:
     """
-    tmp_cost = info1.cost + info2.cost
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
+    infeasible = False if better_accept or best_accept else infeasible
     tmp_seq1 = seq1[:]
     tmp_info1 = None
     tmp_seq2 = seq2[:]
     tmp_info2 = None
+    tmp_cost = info1.cost + info2.cost \
+        if info1 is not None and info2 is not None else M
     have_update = False
     while True:
         for i in range(1, len(tmp_seq1) - 1):
             for j in range(1, len(tmp_seq2) - 1):
+
                 new_seq1 = tmp_seq1[:i] + tmp_seq2[j:]
                 try:
                     new_info1 = generate_seq_info(new_seq1, param)
                 except KeyError:
                     continue
-                if new_info1 is None:
-                    continue
+
                 new_seq2 = tmp_seq2[:j] + tmp_seq1[i:]
                 try:
                     new_info2 = generate_seq_info(new_seq2, param)
                 except KeyError:
                     continue
-                if new_info2 is None:
+
+                if new_info1 is None or new_info2 is None:
+                    if infeasible and random.random() < probability:
+                        return (new_seq1, new_info1), (new_seq2, new_info2)
                     continue
                 if new_info1.cost + new_info2.cost < tmp_cost:
                     if best_accept:
@@ -76,6 +84,8 @@ def two_opt_star(
             break
         have_update = False
     if tmp_info1 is None or tmp_info2 is None:
+        if infeasible and random.random() < probability:
+            return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
         return (None, None), (None, None)
     else:
         return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
@@ -90,7 +100,8 @@ def relocate(
         node_id_c: Set,
         best_accept: bool = True,
         better_accept: bool = True,
-        probability: float = 0.8
+        probability: float = 0.8,
+        infeasible: bool = False
 ) -> ((Tuple, SeqInfo), (Tuple, SeqInfo)):
     """
     relocate operator (One-point Move):
@@ -106,25 +117,32 @@ def relocate(
     :param best_accept:
     :param better_accept:
     :param probability:
+    :param infeasible
     :return:
     """
-    tmp_cost = info1.cost + info2.cost
+    better_accept = False if best_accept else better_accept
+    probability = 0 if better_accept or best_accept else probability
+    infeasible = False if better_accept or best_accept else infeasible
+    tmp_cost = info1.cost + info2.cost \
+        if info1 is not None and info2 is not None else M
     tmp_seq1 = None
     tmp_seq2 = None
     tmp_info1 = None
     tmp_info2 = None
-    better_accept = False if best_accept else better_accept
-    probability = 0 if better_accept or best_accept else probability
     for seq_1, seq_2 in [[seq1, seq2], [seq2, seq1]]:
         for i in range(len(seq1)):
             node = seq_1[i:i + 1]
             new_seq1, new_info1 = generate_seq_info(
                 seq_1[:i] + seq_1[i + 1:], param
             )
+
             new_seq2, new_info2 = insertion(
                 node, seq_2, param, node_id_c, best_accept=True
             )
-            if new_info1 is None or new_info1 is None:
+
+            if new_info1 is None or new_info2 is None:
+                if infeasible and random.random() < probability:
+                    return (new_seq1, new_info1), (new_seq2, new_info2)
                 continue
             else:
                 if new_info1.cost + new_info2.cost < tmp_cost:
@@ -136,6 +154,8 @@ def relocate(
                 if probability and random.random() < probability:
                     return (new_seq1, new_info1), (new_seq2, new_info2)
     if tmp_seq1 is None or tmp_seq2 is None:
+        if infeasible and random.random() < probability:
+            return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
         return (None, None), (None, None)
     return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
 
@@ -148,7 +168,8 @@ def cross_exchange(
         param: Param,
         best_accept: bool = True,
         better_accept: bool = True,
-        probability: float = 0.8
+        probability: float = 0.8,
+        infeasible: bool = False
 ) -> ((Tuple, SeqInfo), (Tuple, SeqInfo)):
     """
     cross exchange
@@ -166,6 +187,7 @@ def cross_exchange(
     :param best_accept:
     :param better_accept:
     :param probability:
+    :param infeasible
     :return:
     """
     tmp_cost = info1.cost + info2.cost
@@ -182,10 +204,10 @@ def cross_exchange(
                     new_seq1 = seq1[:i] + seq2[j:l] + seq1[k:]
                     new_seq2 = seq2[:j] + seq1[i:k] + seq2[l:]
                     new_info1 = generate_seq_info(new_seq1, param)
-                    if new_info1 is None:
-                        continue
                     new_info2 = generate_seq_info(new_seq2, param)
-                    if new_info2 is None:
+                    if new_info1 is None or new_info2 is None:
+                        if infeasible and random.random() < probability:
+                            return (new_seq1, new_info1), (new_seq2, new_info2)
                         continue
                     else:
                         if new_info1.cost + new_info2.cost < tmp_cost:
@@ -198,5 +220,7 @@ def cross_exchange(
                         if probability and random.random() < probability:
                             return (new_seq1, new_info1), (new_seq2, new_info2)
     if tmp_seq1 is None or tmp_seq2 is None:
+        if infeasible and random.random() < probability:
+            return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)
         return (None, None), (None, None)
     return (tmp_seq1, tmp_info1), (tmp_seq2, tmp_info2)

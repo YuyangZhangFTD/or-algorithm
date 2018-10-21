@@ -1,4 +1,5 @@
 from vrp.common.model import SeqInfo, Param
+from vrp.common.constant import M
 from vrp.util.info import generate_seq_info
 from vrp.util.insertion import insertion
 
@@ -12,12 +13,13 @@ def two_opt(
         param: Param,
         best_accept: bool = True,
         better_accept: bool = True,
-        probability: float = 0.8
+        probability: float = 0.8,
+        infeasible: bool = False
 ) -> (Tuple, SeqInfo):
     """
     2-opt (2-exchange, Two-point Move):
         The edges (i, i+1) and (j, j+1) are replaced
-        by edges (i, j􏰂) and (i+1, j+1),
+        by edges (i, j) and (i+1, j+1),
         thus reversing the direction of customers between i+1 and j .
     :param seq:
     :param info:
@@ -25,13 +27,15 @@ def two_opt(
     :param best_accept:
     :param better_accept:
     :param probability:
+    :param infeasible:
     :return:
     """
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
+    infeasible = False if better_accept or best_accept else infeasible
     tmp_seq = seq[:]
     tmp_info = None
-    tmp_cost = info.cost
+    tmp_cost = info.cost if info is not None else M
     have_update = False
     while True:
         for i in range(len(tmp_seq) - 1):
@@ -42,6 +46,8 @@ def two_opt(
                 except KeyError:
                     continue
                 if new_info is None:
+                    if infeasible and random.random() < probability:
+                        return new_seq, None
                     continue
                 else:
                     if new_info.cost < tmp_cost:
@@ -60,6 +66,8 @@ def two_opt(
             break
         have_update = False
     if tmp_info is None:
+        if infeasible and random.random() < probability:
+            return tmp_seq, None
         return None, None
     else:
         return tmp_seq, tmp_info
@@ -72,7 +80,8 @@ def or_opt(
         node_id_c: Set,
         best_accept: bool = True,
         better_accept: bool = True,
-        probability: float = 0.8
+        probability: float = 0.8,
+        infeasible: bool = False
 ) -> (Tuple, SeqInfo):
     """
     or-opt operator (or-opt move):
@@ -90,13 +99,15 @@ def or_opt(
     :param best_accept:
     :param better_accept:
     :param probability:
+    :param infeasible:
     :return:
     """
-    tmp_cost = info.cost
-    tmp_seq = seq[:]
-    tmp_info = None
     better_accept = False if best_accept else better_accept
     probability = 0 if better_accept or best_accept else probability
+    infeasible = False if better_accept or best_accept else infeasible
+    tmp_seq = seq[:]
+    tmp_cost = info.cost if info is not None else M
+    tmp_info = None
     if len(seq) <= 2:  # for efficiency
         return None, None
     have_update = False
@@ -114,6 +125,8 @@ def or_opt(
                 except KeyError:
                     continue
                 if new_info is None:
+                    if infeasible and random.random() < probability:
+                        return new_seq, None
                     continue
                 else:
                     if new_info.cost < tmp_cost:
@@ -132,6 +145,8 @@ def or_opt(
             break
         have_update = False
     if tmp_info is None:
+        if infeasible and random.random() < probability:
+            return tmp_seq, None
         return None, None
     else:
         return tmp_seq, tmp_info
